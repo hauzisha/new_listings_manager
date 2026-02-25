@@ -85,6 +85,7 @@ export default function Listings() {
   const type = searchParams.get("type") ?? "";
   const location = searchParams.get("location") ?? "";
   const propertyType = searchParams.get("propertyType") ?? "";
+  const nature = searchParams.get("nature") ?? "";
   const minPrice = searchParams.get("minPrice") ?? "";
   const maxPrice = searchParams.get("maxPrice") ?? "";
   const sort = searchParams.get("sort") ?? "newest";
@@ -94,6 +95,7 @@ export default function Listings() {
     ...(type ? { type } : {}),
     ...(location ? { location } : {}),
     ...(propertyType ? { propertyType } : {}),
+    ...(nature ? { nature } : {}),
     ...(minPrice ? { minPrice } : {}),
     ...(maxPrice ? { maxPrice } : {}),
     ...(sort ? { sort } : {}),
