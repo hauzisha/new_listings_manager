@@ -8,8 +8,12 @@ import { authExtRouter } from "./routes/auth-ext";
 import { notificationsRouter } from "./routes/notifications";
 import { listingsRouter } from "./routes/listings";
 import { trackingLinksRouter } from "./routes/tracking-links";
+import { inquiriesRouter } from "./routes/inquiries";
+import { commissionsRouter } from "./routes/commissions";
+import { promoterRouter } from "./routes/promoter";
 import { adminUsersRouter } from "./routes/admin/users";
 import { adminSettingsRouter } from "./routes/admin/settings";
+import { adminStatsRouter } from "./routes/admin/stats";
 import { uploadRouter } from "./routes/upload";
 import { prisma } from "./prisma";
 
@@ -102,9 +106,19 @@ app.route("/api", listingsRouter);
 // Tracking links routes
 app.route("/api", trackingLinksRouter);
 
+// Inquiries routes
+app.route("/api", inquiriesRouter);
+
+// Commissions routes
+app.route("/api", commissionsRouter);
+
+// Promoter routes
+app.route("/api", promoterRouter);
+
 // Admin routes
 app.route("/api/admin", adminUsersRouter);
 app.route("/api/admin", adminSettingsRouter);
+app.route("/api/admin", adminStatsRouter);
 
 // Upload routes
 app.route("/api", uploadRouter);

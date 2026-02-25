@@ -54,6 +54,66 @@ const createTrackingLinkSchema = z.object({
 
 // ─── Routes ───────────────────────────────────────────────────────────────────
 
+// GET /api/tracking-links
+trackingLinksRouter.get("/tracking-links", async (c) => {
+  const sessionUser = c.get("user");
+  if (!sessionUser) {
+    return c.json({ error: { message: "Unauthorized", code: "UNAUTHORIZED" } }, 401);
+  }
+
+  const user = await requireApprovedUser(c);
+  if (!user) {
+    return c.json({ error: { message: "Account not approved", code: "FORBIDDEN" } }, 403);
+  }
+
+  const where = user.role === "ADMIN" ? {} : { creatorId: user.id };
+
+  const links = await prisma.trackingLink.findMany({
+    where,
+    orderBy: { createdAt: "desc" },
+    include: {
+      listing: {
+        select: { title: true, slug: true },
+      },
+    },
+  });
+
+  const result = links.map((link) => ({
+    ...link,
+    shareUrl: `https://hauzisha.co.ke/l/${link.refCode}`,
+  }));
+
+  return c.json({ data: result });
+});
+
+// DELETE /api/tracking-links/:id
+trackingLinksRouter.delete("/tracking-links/:id", async (c) => {
+  const sessionUser = c.get("user");
+  if (!sessionUser) {
+    return c.json({ error: { message: "Unauthorized", code: "UNAUTHORIZED" } }, 401);
+  }
+
+  const user = await requireApprovedUser(c);
+  if (!user) {
+    return c.json({ error: { message: "Account not approved", code: "FORBIDDEN" } }, 403);
+  }
+
+  const { id } = c.req.param();
+
+  const link = await prisma.trackingLink.findUnique({ where: { id } });
+  if (!link) {
+    return c.json({ error: { message: "Tracking link not found", code: "NOT_FOUND" } }, 404);
+  }
+
+  if (user.role !== "ADMIN" && link.creatorId !== user.id) {
+    return c.json({ error: { message: "Forbidden", code: "FORBIDDEN" } }, 403);
+  }
+
+  await prisma.trackingLink.delete({ where: { id } });
+
+  return c.json({ data: { success: true } });
+});
+
 // POST /api/tracking-links
 trackingLinksRouter.post(
   "/tracking-links",

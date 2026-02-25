@@ -9,6 +9,7 @@ import NotFound from "./pages/NotFound";
 
 // Public marketplace
 import MarketplaceListings from "./pages/marketplace/Listings";
+import ListingDetail from "./pages/marketplace/ListingDetail";
 
 // Admin pages
 import AdminOverview from "./pages/dashboard/admin/Overview";
@@ -47,6 +48,8 @@ const App = () => (
         <Routes>
           <Route path="/" element={<Navigate to="/listings" replace />} />
           <Route path="/listings" element={<MarketplaceListings />} />
+          <Route path="/listings/:slug" element={<ListingDetail />} />
+          <Route path="/listings/:slug/r/:ref" element={<ListingDetail />} />
           <Route path="/login" element={<Login />} />
           <Route path="/signup/agent" element={<AgentSignup />} />
           <Route path="/signup/promoter" element={<PromoterSignup />} />
