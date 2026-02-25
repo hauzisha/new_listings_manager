@@ -203,28 +203,35 @@ function CommissionPreview({
       </p>
       <div className="border-b border-border pb-1.5 mb-1.5">
         <div className="flex justify-between">
-          <span className="text-muted-foreground">Total payable by landlord</span>
+          <span className="text-muted-foreground">Landlord/Developer pays</span>
           <span className="font-semibold text-foreground">
             {fmt(totalAmt)} ({totalPct}%)
           </span>
         </div>
       </div>
       <div className="flex justify-between pl-3">
-        <span className="text-muted-foreground">└─ Agent earns</span>
-        <span className="font-semibold text-foreground">
+        <span className="text-muted-foreground">└─ Agent receives</span>
+        <span className="font-semibold text-emerald-700">
           {fmt(agentAmt)} ({agentPct}%)
         </span>
       </div>
       <div className="flex justify-between pl-3">
-        <span className="text-muted-foreground">└─ Company earns</span>
-        <span className="font-semibold text-foreground">
+        <span className="text-muted-foreground">└─ Company receives</span>
+        <span className="font-semibold text-blue-700">
           {fmt(companyAmt)} ({companyPct}%)
         </span>
       </div>
       <div className="flex justify-between pl-3">
-        <span className="text-muted-foreground">└─ Promoter earns</span>
-        <span className="font-semibold text-foreground">
+        <span className="text-muted-foreground">└─ Promoter receives</span>
+        <span className="font-semibold text-amber-700">
           {fmt(promoterAmt)} ({promoterPct}%)
+        </span>
+      </div>
+      <div className="border-t border-border pt-1.5 mt-1 font-sans">
+        <span className="text-xs text-muted-foreground font-medium">
+          {Math.abs((agentAmt + companyAmt + promoterAmt) - totalAmt) < 1
+            ? '✓ Shares balance correctly'
+            : `⚠ Gap: ${fmt(totalAmt - agentAmt - companyAmt - promoterAmt)}`}
         </span>
       </div>
     </div>
@@ -870,13 +877,22 @@ export default function EditListing() {
 
                     {/* Share splits */}
                     <div className="space-y-2">
-                      <p className="text-xs font-medium text-muted-foreground">Split among:</p>
+                      <div className="flex items-center justify-between">
+                        <p className="text-xs font-medium text-muted-foreground">
+                          How is it split? <span className="text-foreground">(must add up to {totalNum > 0 ? `${totalNum}%` : 'total above'})</span>
+                        </p>
+                        {totalNum > 0 && (
+                          <span className={`text-xs font-semibold ${sharesBalanced ? 'text-emerald-600' : 'text-amber-600'}`}>
+                            {Math.round(sharesSum * 100) / 100}% / {totalNum}%
+                          </span>
+                        )}
+                      </div>
                       <div className="grid grid-cols-3 gap-3">
                         {(
                           [
-                            { name: 'agentCommissionPct', label: 'Agent Share (%)' },
-                            { name: 'companyCommissionPct', label: 'Company Share (%)' },
-                            { name: 'promoterCommissionPct', label: 'Promoter Share (%)' },
+                            { name: 'agentCommissionPct', label: 'Agent (%)' },
+                            { name: 'companyCommissionPct', label: 'Company (%)' },
+                            { name: 'promoterCommissionPct', label: 'Promoter (%)' },
                           ] as const
                         ).map(({ name, label }) => (
                           <div key={name} className="space-y-1.5">
@@ -905,19 +921,7 @@ export default function EditListing() {
                           </div>
                         ))}
                       </div>
-
-                      {/* Balance validation */}
-                      {totalNum > 0 && (
-                        sharesBalanced ? (
-                          <p className="text-xs text-emerald-600 font-medium">
-                            Shares balance correctly
-                          </p>
-                        ) : (
-                          <p className="text-xs text-amber-600 font-medium">
-                            Shares must add up to {totalNum}% (currently {Math.round(sharesSum * 100) / 100}%)
-                          </p>
-                        )
-                      )}
+                      {/* Balance validation moved into preview card */}
                     </div>
 
                     <CommissionPreview
