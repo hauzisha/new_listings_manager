@@ -367,8 +367,11 @@ function ListingRow({
       <td className="px-4 py-2.5 text-xs text-muted-foreground hidden xl:table-cell whitespace-nowrap">
         #{listing.listingNumber}
       </td>
-      <td className="px-4 py-2.5 text-xs text-muted-foreground hidden xl:table-cell whitespace-nowrap">
-        {timeAgo(listing.createdAt)}
+      <td className="px-4 py-2.5 hidden xl:table-cell whitespace-nowrap">
+        <p className="text-xs text-muted-foreground">{timeAgo(listing.createdAt)}</p>
+        <p className="text-[11px] text-muted-foreground/60 mt-0.5">
+          {new Date(listing.createdAt).toLocaleDateString("en-KE", { day: "numeric", month: "short", year: "numeric" })}
+        </p>
       </td>
     </tr>
   );
