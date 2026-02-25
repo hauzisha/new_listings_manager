@@ -1,0 +1,273 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ─────────────────────────────────────────────
+// BETTER AUTH TABLES
+// ─────────────────────────────────────────────
+
+model User {
+  id            String   @id @default(cuid())
+  name          String
+  email         String   @unique
+  emailVerified Boolean  @default(false)
+  image         String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Hauzisha-specific fields
+  phone         String?
+  role          String   @default("AGENT") // ADMIN | AGENT | PROMOTER
+  isApproved    Boolean  @default(false)
+  approvedById  String?
+  approvedBy    User?    @relation("ApproverApproved", fields: [approvedById], references: [id])
+  approvedUsers User[]   @relation("ApproverApproved")
+  permissions   String   @default("[]") // JSON array stored as string
+  referrerId    String?
+  referrer      User?    @relation("ReferrerReferrals", fields: [referrerId], references: [id])
+  referrals     User[]   @relation("ReferrerReferrals")
+
+  // Better Auth relations
+  sessions      Session[]
+  accounts      Account[]
+
+  // Hauzisha relations
+  listings         Listing[]      @relation("AgentListings")
+  trackingLinks    TrackingLink[]
+  inquiriesAsAgent Inquiry[]      @relation("AgentInquiries")
+  promotions       Promotion[]
+  commissions      Commission[]
+  notifications    Notification[]
+
+  @@map("user")
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  userId    String
+  token     String   @unique
+  expiresAt DateTime
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("session")
+}
+
+model Account {
+  id                    String    @id @default(cuid())
+  userId                String
+  accountId             String
+  providerId            String
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("account")
+}
+
+model Verification {
+  id         String   @id @default(cuid())
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@map("verification")
+}
+
+// ─────────────────────────────────────────────
+// HAUZISHA DOMAIN TABLES
+// ─────────────────────────────────────────────
+
+model Listing {
+  id            String   @id @default(cuid())
+  listingNumber Int      @unique
+  title         String
+  slug          String   @unique
+
+  // Listing type: RENTAL | SALE
+  listingType  String
+  // Property type: APARTMENT | HOUSE | VILLA | STUDIO | COMMERCIAL | LAND | TOWNHOUSE
+  propertyType String
+  location     String
+  price        Float
+  bedrooms     Int?
+  bathrooms    Int?
+  areaSqft     Float?
+  description  String
+  amenities    String   @default("[]") // JSON array as string
+  images       String   @default("[]") // JSON array of image URLs
+
+  // Status: ACTIVE | INACTIVE | SOLD | RENTED
+  status String @default("ACTIVE")
+
+  // Commission percentages
+  agentCommissionPct    Float @default(0)
+  promoterCommissionPct Float @default(0)
+  companyCommissionPct  Float @default(0)
+
+  createdById String
+  createdBy   User   @relation("AgentListings", fields: [createdById], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  trackingLinks TrackingLink[]
+  inquiries     Inquiry[]
+  promotions    Promotion[]
+  commissions   Commission[]
+
+  @@map("listing")
+}
+
+model TrackingLink {
+  id          String @id @default(cuid())
+  refCode     String @unique // 12-char cryptographically secure alphanumeric
+
+  listingId String
+  listing   Listing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+
+  creatorId   String
+  creator     User   @relation(fields: [creatorId], references: [id])
+  // creatorRole: AGENT | PROMOTER | ADMIN
+  creatorRole String
+
+  promoterId String? // User ID of the promoter attributed to this link
+
+  // Platform: WHATSAPP | FACEBOOK | INSTAGRAM | TWITTER_X | TIKTOK | LINKEDIN | EMAIL | SMS | WEBSITE | OTHER
+  platform       String
+  targetLocation String?
+  customTag      String?
+
+  clickCount   Int @default(0)
+  inquiryCount Int @default(0)
+
+  createdAt DateTime @default(now())
+
+  clickEvents ClickEvent[]
+  inquiries   Inquiry[]
+
+  @@map("tracking_link")
+}
+
+model Inquiry {
+  id        String  @id @default(cuid())
+  listingId String
+  listing   Listing @relation(fields: [listingId], references: [id])
+
+  agentId String
+  agent   User   @relation("AgentInquiries", fields: [agentId], references: [id])
+
+  promoterId String? // Set if attributed to a promoter via tracking link
+
+  trackingLinkId String?
+  trackingLink   TrackingLink? @relation(fields: [trackingLinkId], references: [id])
+
+  // Client info
+  clientName  String
+  clientEmail String?
+  clientPhone String
+  message     String?
+
+  // Stage: INQUIRY | WAITING_RESPONSE | SCHEDULED | VIEWED | RENTED | PURCHASED | NO_SHOW | CANCELLED
+  stage        String @default("INQUIRY")
+  stageHistory String @default("[]") // JSON array of { stage, timestamp, note?, changedById? }
+
+  firstResponseAt DateTime? // When agent first replied
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  commissions Commission[]
+
+  @@map("inquiry")
+}
+
+model Promotion {
+  id         String   @id @default(cuid())
+  promoterId String
+  promoter   User     @relation(fields: [promoterId], references: [id])
+  listingId  String
+  listing    Listing  @relation(fields: [listingId], references: [id])
+  createdAt  DateTime @default(now())
+
+  @@unique([promoterId, listingId])
+  @@map("promotion")
+}
+
+model Commission {
+  id        String  @id @default(cuid())
+  inquiryId String
+  inquiry   Inquiry @relation(fields: [inquiryId], references: [id])
+  listingId String
+  listing   Listing @relation(fields: [listingId], references: [id])
+
+  earnerId String
+  earner   User   @relation(fields: [earnerId], references: [id])
+  // role: AGENT | PROMOTER | COMPANY | RECRUITER
+  role   String
+  amount Float
+
+  // status: PENDING | APPROVED | PAID
+  status String   @default("PENDING")
+  paidAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("commission")
+}
+
+model ClickEvent {
+  id             String       @id @default(cuid())
+  trackingLinkId String
+  trackingLink   TrackingLink @relation(fields: [trackingLinkId], references: [id], onDelete: Cascade)
+
+  visitorHash String   // SHA-256 of IP + UserAgent + date (privacy-safe)
+  timestamp   DateTime @default(now())
+
+  @@map("click_event")
+}
+
+model Notification {
+  id          String @id @default(cuid())
+  recipientId String
+  recipient   User   @relation(fields: [recipientId], references: [id], onDelete: Cascade)
+
+  // type: INQUIRY_RECEIVED | STAGE_CHANGED | COMMISSION_APPROVED | COMMISSION_PAID |
+  //       LISTING_APPROVED | USER_APPROVED | STALE_INQUIRY | RESPONSE_SLA_BREACH | SYSTEM | CLICK_MILESTONE
+  type    String
+  title   String
+  message String
+  link    String?
+
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@map("notification")
+}
+
+model SystemSetting {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  value     String
+  updatedAt DateTime @updatedAt
+
+  @@map("system_setting")
+}
