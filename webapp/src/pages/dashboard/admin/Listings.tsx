@@ -279,57 +279,68 @@ function ListingRow({
       className="border-b border-border hover:bg-muted/40 cursor-pointer transition-colors group"
       onClick={onClick}
     >
-      <td className="px-4 py-3">
+      <td className="px-4 py-2.5">
         <div className="flex items-center gap-3 min-w-0">
-          {listing.images.length > 0 ? (
-            <img
-              src={listing.images[0]}
-              alt=""
-              className="w-10 h-10 rounded-lg object-cover flex-shrink-0 border border-border"
-            />
-          ) : (
-            <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center flex-shrink-0 border border-border">
-              <Building2 className="w-4 h-4 text-muted-foreground" />
-            </div>
-          )}
+          {/* Preview image — 56×56 so it's actually visible */}
+          <div className="flex-shrink-0 w-14 h-14 rounded-xl overflow-hidden border border-border bg-muted">
+            {listing.images.length > 0 ? (
+              <img
+                src={listing.images[0]}
+                alt=""
+                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+              />
+            ) : (
+              <div className="w-full h-full flex flex-col items-center justify-center gap-1 bg-gradient-to-br from-muted to-muted/60">
+                <Building2 className="w-5 h-5 text-muted-foreground/40" />
+              </div>
+            )}
+          </div>
           <div className="min-w-0">
-            <p className="text-sm font-medium text-foreground truncate max-w-[220px] group-hover:text-primary transition-colors">
+            <p className="text-sm font-semibold text-foreground truncate max-w-[200px] group-hover:text-primary transition-colors leading-snug">
               {listing.title}
             </p>
-            <p className="text-xs text-muted-foreground truncate max-w-[220px]">
+            <p className="text-xs text-muted-foreground truncate max-w-[200px] mt-0.5">
               {listing.slug}
             </p>
+            {/* Show type badge inline on medium screens where the Type col is hidden */}
+            <div className="flex gap-1.5 mt-1 lg:hidden">
+              <TypeBadge type={listing.listingType} />
+            </div>
           </div>
         </div>
       </td>
-      <td className="px-4 py-3 text-sm text-muted-foreground hidden md:table-cell">
+      <td className="px-4 py-2.5 text-sm text-muted-foreground hidden md:table-cell">
         <span className="flex items-center gap-1">
-          <MapPin className="w-3.5 h-3.5 flex-shrink-0" />
+          <MapPin className="w-3.5 h-3.5 flex-shrink-0 text-primary/60" />
           {listing.location}
         </span>
       </td>
-      <td className="px-4 py-3 hidden lg:table-cell">
+      <td className="px-4 py-2.5 hidden lg:table-cell">
         <TypeBadge type={listing.listingType} />
       </td>
-      <td className="px-4 py-3 text-sm font-semibold text-foreground whitespace-nowrap">
-        {formatKES(listing.price)}
+      <td className="px-4 py-2.5 whitespace-nowrap">
+        <p className="text-sm font-bold text-foreground">
+          {formatKES(listing.price)}
+        </p>
         {listing.listingType === "RENTAL" && (
-          <span className="text-xs font-normal text-muted-foreground">/mo</span>
+          <p className="text-[10px] text-muted-foreground">/month</p>
         )}
       </td>
-      <td className="px-4 py-3 hidden lg:table-cell">
+      <td className="px-4 py-2.5 hidden lg:table-cell">
         <span className="flex items-center gap-1.5 text-sm text-muted-foreground">
-          <User className="w-3.5 h-3.5 flex-shrink-0" />
-          {listing.agentName}
+          <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+            <User className="w-3.5 h-3.5 text-primary" />
+          </div>
+          <span className="truncate max-w-[120px]">{listing.agentName}</span>
         </span>
       </td>
-      <td className="px-4 py-3">
+      <td className="px-4 py-2.5">
         <StatusBadge status={listing.status} />
       </td>
-      <td className="px-4 py-3 text-xs text-muted-foreground hidden xl:table-cell whitespace-nowrap">
+      <td className="px-4 py-2.5 text-xs text-muted-foreground hidden xl:table-cell whitespace-nowrap">
         #{listing.listingNumber}
       </td>
-      <td className="px-4 py-3 text-xs text-muted-foreground hidden xl:table-cell whitespace-nowrap">
+      <td className="px-4 py-2.5 text-xs text-muted-foreground hidden xl:table-cell whitespace-nowrap">
         {timeAgo(listing.createdAt)}
       </td>
     </tr>
@@ -341,37 +352,51 @@ function ListingRow({
 function ListingCard({ listing, onClick }: { listing: AdminListing; onClick: () => void }) {
   return (
     <div
-      className="bg-card border border-border rounded-xl p-4 cursor-pointer hover:border-primary/30 hover:bg-muted/30 transition-all"
+      className="bg-card border border-border rounded-xl overflow-hidden cursor-pointer hover:border-primary/30 transition-all group"
       onClick={onClick}
     >
-      <div className="flex items-start gap-3">
+      {/* Image strip at top for mobile */}
+      <div className="relative w-full h-36 bg-muted overflow-hidden">
         {listing.images.length > 0 ? (
-          <img src={listing.images[0]} alt="" className="w-14 h-14 rounded-xl object-cover flex-shrink-0 border border-border" />
+          <img
+            src={listing.images[0]}
+            alt={listing.title}
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+          />
         ) : (
-          <div className="w-14 h-14 rounded-xl bg-muted flex items-center justify-center flex-shrink-0 border border-border">
-            <Building2 className="w-5 h-5 text-muted-foreground" />
+          <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-muted to-muted/50">
+            <Building2 className="w-10 h-10 text-muted-foreground/20" />
           </div>
         )}
-        <div className="flex-1 min-w-0">
-          <p className="text-sm font-semibold text-foreground leading-snug line-clamp-1">{listing.title}</p>
-          <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
-            <MapPin className="w-3 h-3 flex-shrink-0" />{listing.location}
-          </p>
-          <div className="flex flex-wrap gap-1.5 mt-2">
-            <StatusBadge status={listing.status} />
-            <TypeBadge type={listing.listingType} />
-          </div>
+        {/* Status badge overlaid on image */}
+        <div className="absolute top-2.5 left-2.5">
+          <StatusBadge status={listing.status} />
         </div>
-        <div className="text-right flex-shrink-0">
-          <p className="text-sm font-bold text-primary">{formatKES(listing.price)}</p>
-          {listing.listingType === "RENTAL" && <p className="text-[10px] text-muted-foreground">/month</p>}
-          <p className="text-[10px] text-muted-foreground mt-1">#{listing.listingNumber}</p>
+        <div className="absolute top-2.5 right-2.5">
+          <TypeBadge type={listing.listingType} />
         </div>
       </div>
-      <div className="flex items-center gap-1.5 mt-2.5 pt-2.5 border-t border-border">
-        <User className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />
-        <span className="text-xs text-muted-foreground truncate">{listing.agentName}</span>
-        <span className="ml-auto text-[10px] text-muted-foreground">{timeAgo(listing.createdAt)}</span>
+      <div className="p-4">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-sm font-semibold text-foreground leading-snug line-clamp-1">{listing.title}</p>
+            <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
+              <MapPin className="w-3 h-3 flex-shrink-0" />{listing.location}
+            </p>
+          </div>
+          <div className="text-right flex-shrink-0">
+            <p className="text-sm font-bold text-primary">{formatKES(listing.price)}</p>
+            {listing.listingType === "RENTAL" && <p className="text-[10px] text-muted-foreground">/month</p>}
+            <p className="text-[10px] text-muted-foreground mt-1">#{listing.listingNumber}</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-1.5 mt-3 pt-3 border-t border-border">
+          <div className="w-5 h-5 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+            <User className="w-3 h-3 text-primary" />
+          </div>
+          <span className="text-xs text-muted-foreground truncate">{listing.agentName}</span>
+          <span className="ml-auto text-[10px] text-muted-foreground">{timeAgo(listing.createdAt)}</span>
+        </div>
       </div>
     </div>
   );
