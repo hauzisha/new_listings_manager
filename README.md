@@ -106,12 +106,66 @@ backend/prisma/
 
 ## Frontend
 
-Located in `webapp/`. React + Vite + TailwindCSS + shadcn/ui. To be built out with the full Hauzisha UI.
+Located in `webapp/`. React + Vite + TailwindCSS + shadcn/ui.
 
-### API Client
+### Design System
 
-`webapp/src/lib/api.ts` — wraps `fetch` with `credentials: "include"` for cookie-based auth.
+- **Fonts:** Playfair Display (headings, italic brand name) + DM Sans (body)
+- **Primary:** Royal blue `hsl(221 83% 53%)`
+- **Accent:** Gold `hsl(43 96% 56%)`
+- **Theme:** Light mode with premium, trustworthy feel
 
-### Auth Client
+### Routes
 
-`webapp/src/lib/auth-client.ts` — Better Auth React client with `useSession` hook.
+| Path | Component | Notes |
+|---|---|---|
+| `/login` | Login | Email + password. Role-based redirect after sign-in |
+| `/signup/agent` | AgentSignup | Pending approval flow |
+| `/signup/promoter` | PromoterSignup | Supports `?via=` referral code |
+| `/dashboard/admin` | Admin Overview | Requires ADMIN role |
+| `/dashboard/admin/users` | Admin Users | Approve/reject + full user table |
+| `/dashboard/admin/settings` | Admin Settings | System settings form |
+| `/dashboard/agent` | Agent Overview | Requires AGENT role |
+| `/dashboard/agent/listings` | Agent Listings | — |
+| `/dashboard/agent/inquiries` | Agent Inquiries | — |
+| `/dashboard/agent/tracking-links` | Tracking Links | — |
+| `/dashboard/agent/commissions` | Commissions | — |
+| `/dashboard/promoter` | Promoter Overview | Requires PROMOTER role |
+| `/dashboard/promoter/promotions` | My Promotions | — |
+| `/dashboard/promoter/tracking-links` | Tracking Links | — |
+| `/dashboard/promoter/stats` | Stats | — |
+| `/dashboard/promoter/commissions` | Commissions | — |
+
+### Dashboard Layout
+
+`components/dashboard/DashboardLayout.tsx` — wraps all dashboard pages with:
+- Auth guard (redirects to `/login` if no session or not approved)
+- Fixed sidebar (desktop) with role-based navigation
+- Top bar with page title, notification bell, user dropdown + sign out
+- Mobile bottom tab bar (first 5 nav items)
+
+### Key Source Files
+
+```
+webapp/src/
+  lib/
+    api.ts            — Fetch wrapper, auto-unwraps { data: T }
+    auth-client.ts    — Better Auth React client (useSession, signOut)
+    types.ts          — Shared TypeScript interfaces
+  hooks/
+    useCurrentUser.ts — Fetches role + approval status
+    useNotifications.ts — Notifications list, unread count, mark-read mutations
+  components/
+    auth/AuthLayout.tsx            — Split-screen auth page layout
+    dashboard/DashboardLayout.tsx  — Master dashboard layout
+    dashboard/NotificationBell.tsx — Bell with unread badge + popover
+  pages/
+    auth/Login.tsx
+    auth/AgentSignup.tsx
+    auth/PromoterSignup.tsx
+    dashboard/admin/Overview.tsx
+    dashboard/admin/Users.tsx     — Full approve/reject user management
+    dashboard/admin/Settings.tsx  — System settings form
+    dashboard/agent/...
+    dashboard/promoter/...
+```

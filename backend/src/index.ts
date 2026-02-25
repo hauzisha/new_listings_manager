@@ -5,6 +5,9 @@ import { logger } from "hono/logger";
 import "./env";
 import { auth } from "./auth";
 import { authExtRouter } from "./routes/auth-ext";
+import { notificationsRouter } from "./routes/notifications";
+import { adminUsersRouter } from "./routes/admin/users";
+import { adminSettingsRouter } from "./routes/admin/settings";
 
 const app = new Hono<{
   Variables: {
@@ -63,6 +66,13 @@ app.get("/api/me", (c) => {
   if (!user) return c.json({ error: { message: "Unauthorized", code: "UNAUTHORIZED" } }, 401);
   return c.json({ data: user });
 });
+
+// Notifications routes
+app.route("/api", notificationsRouter);
+
+// Admin routes
+app.route("/api/admin", adminUsersRouter);
+app.route("/api/admin", adminSettingsRouter);
 
 const port = Number(process.env.PORT) || 3000;
 
