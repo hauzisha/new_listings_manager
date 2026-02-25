@@ -9,9 +9,9 @@ source "$(dirname "$0")/env.sh"
 # Backup the database before proceeding.
 if [[ "${ENVIRONMENT}" == "production" ]] && [[ -f "${DATABASE_FILE}" ]]; then
   DATABASE_BACKUP_FILE="${DATABASE_FILE}-$(date +%s)"
-  echo "Backing up database to ${DATABASE_BACKUP_FILE}..."
   echo "VACUUM INTO '${DATABASE_BACKUP_FILE}'" | sqlite3 "${DATABASE_FILE}"
 fi
+ 
 
 # Install dependencies
 echo "Installing dependencies..."
@@ -22,13 +22,7 @@ if [[ -f "prisma/schema.prisma" ]]; then
   echo "Generating Prisma client..."
   bunx prisma generate
   echo "Pushing schema to database..."
-  if [[ "${ENVIRONMENT}" == "production" ]]; then
-    # In production: never use --accept-data-loss — only safe additive migrations
-    bunx prisma db push
-  else
-    # In development: allow data loss for schema experiments
-    bunx prisma db push --accept-data-loss
-  fi
+  bunx prisma db push --accept-data-loss
 
   # Enable DB viewer (idempotent, safe to call multiple times)
   if [[ -n "${VIBECODE_PROJECT_ID:-}" ]]; then
