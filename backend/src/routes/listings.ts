@@ -116,6 +116,7 @@ listingsRouter.get("/listings/public", async (c) => {
   const typeParam = c.req.query("type") ?? "";
   const location = c.req.query("location") ?? "";
   const propertyType = c.req.query("propertyType") ?? "";
+  const nature = c.req.query("nature") ?? "";
   const minPrice = c.req.query("minPrice") ?? "";
   const maxPrice = c.req.query("maxPrice") ?? "";
   const sort = c.req.query("sort") ?? "newest";
@@ -139,6 +140,10 @@ listingsRouter.get("/listings/public", async (c) => {
 
   if (propertyType) {
     where.propertyType = propertyType;
+  }
+
+  if (nature === "RESIDENTIAL" || nature === "COMMERCIAL" || nature === "MIXED") {
+    where.nature = nature;
   }
 
   if (minPrice || maxPrice) {

@@ -83,8 +83,6 @@ const PROPERTY_TYPES: { label: string; value: string; icon: React.ReactNode }[] 
   { label: 'Duplex', value: 'DUPLEX', icon: <Copy className="w-5 h-5" /> },
   { label: 'Penthouse', value: 'PENTHOUSE', icon: <Star className="w-5 h-5" /> },
   { label: 'Townhouse', value: 'TOWNHOUSE', icon: <Hotel className="w-5 h-5" /> },
-  { label: 'Commercial Space', value: 'COMMERCIAL', icon: <Briefcase className="w-5 h-5" /> },
-  { label: 'Land', value: 'LAND', icon: <Map className="w-5 h-5" /> },
 ];
 
 const AMENITIES = [

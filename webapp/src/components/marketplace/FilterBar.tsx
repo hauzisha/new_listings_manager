@@ -21,8 +21,13 @@ const PROPERTY_TYPES: { label: string; value: string }[] = [
   { label: "Duplex", value: "DUPLEX" },
   { label: "Penthouse", value: "PENTHOUSE" },
   { label: "Townhouse", value: "TOWNHOUSE" },
+];
+
+const NATURE_TYPES = [
+  { label: "All Use", value: "" },
+  { label: "Residential", value: "RESIDENTIAL" },
   { label: "Commercial", value: "COMMERCIAL" },
-  { label: "Land", value: "LAND" },
+  { label: "Mixed Use", value: "MIXED" },
 ];
 
 const LISTING_TYPES = [
@@ -43,6 +48,7 @@ export default function FilterBar() {
   const currentType = searchParams.get("type") ?? "";
   const currentLocation = searchParams.get("location") ?? "";
   const currentPropertyType = searchParams.get("propertyType") ?? "";
+  const currentNature = searchParams.get("nature") ?? "";
   const currentMinPrice = searchParams.get("minPrice") ?? "";
   const currentMaxPrice = searchParams.get("maxPrice") ?? "";
   const currentSort = searchParams.get("sort") ?? "newest";
@@ -88,6 +94,7 @@ export default function FilterBar() {
     currentType !== "" ||
     currentLocation !== "" ||
     currentPropertyType !== "" ||
+    currentNature !== "" ||
     currentMinPrice !== "" ||
     currentMaxPrice !== "" ||
     currentSort !== "newest";
@@ -150,6 +157,23 @@ export default function FilterBar() {
               {PROPERTY_TYPES.map((pt) => (
                 <SelectItem key={pt.value} value={pt.value}>
                   {pt.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          {/* Nature / use type */}
+          <Select
+            value={currentNature || "all"}
+            onValueChange={(val) => setParam("nature", val === "all" ? "" : val)}
+          >
+            <SelectTrigger className="h-9 text-sm w-[140px] bg-muted/40 border-border/60 flex-shrink-0">
+              <SelectValue placeholder="Use type" />
+            </SelectTrigger>
+            <SelectContent>
+              {NATURE_TYPES.map((n) => (
+                <SelectItem key={n.value || "all"} value={n.value || "all"}>
+                  {n.label}
                 </SelectItem>
               ))}
             </SelectContent>
