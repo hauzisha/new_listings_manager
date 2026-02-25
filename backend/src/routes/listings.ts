@@ -205,6 +205,73 @@ listingsRouter.get("/listings/agent", async (c) => {
   return c.json({ data: listings.map((l) => parseListing(l as unknown as Record<string, unknown>)) });
 });
 
+// GET /api/listings/admin  (admin only — all listings with agent info)
+listingsRouter.get("/listings/admin", async (c) => {
+  const sessionUser = c.get("user");
+  if (!sessionUser) {
+    return c.json({ error: { message: "Unauthorized", code: "UNAUTHORIZED" } }, 401);
+  }
+
+  const user = await requireAgent(c);
+  if (!user) {
+    return c.json({ error: { message: "Account not approved", code: "FORBIDDEN" } }, 403);
+  }
+
+  if (user.role !== "ADMIN") {
+    return c.json({ error: { message: "Forbidden", code: "FORBIDDEN" } }, 403);
+  }
+
+  const search = c.req.query("search") ?? "";
+  const status = c.req.query("status") ?? "";
+  const listingType = c.req.query("listingType") ?? "";
+  const location = c.req.query("location") ?? "";
+  const agentId = c.req.query("agentId") ?? "";
+
+  const where: Record<string, unknown> = {};
+
+  if (search) {
+    where.title = { contains: search, mode: "insensitive" };
+  }
+
+  if (status === "ACTIVE" || status === "INACTIVE" || status === "SOLD" || status === "RENTED") {
+    where.status = status;
+  }
+
+  if (listingType === "RENTAL" || listingType === "SALE") {
+    where.listingType = listingType;
+  }
+
+  if (location) {
+    where.location = { contains: location, mode: "insensitive" };
+  }
+
+  if (agentId) {
+    where.createdById = agentId;
+  }
+
+  const listings = await prisma.listing.findMany({
+    where,
+    orderBy: { createdAt: "desc" },
+    include: {
+      createdBy: {
+        select: { id: true, name: true },
+      },
+    },
+  });
+
+  const result = listings.map((l) => {
+    const { createdBy, ...rest } = l;
+    const parsed = parseListing(rest as unknown as Record<string, unknown>);
+    return {
+      ...parsed,
+      agentId: createdBy.id,
+      agentName: createdBy.name,
+    };
+  });
+
+  return c.json({ data: result });
+});
+
 // GET /api/listings/by-slug/:slug  (no auth required)
 listingsRouter.get("/listings/by-slug/:slug", async (c) => {
   const { slug } = c.req.param();
@@ -425,6 +492,46 @@ listingsRouter.put(
     const updated = await prisma.listing.update({
       where: { id },
       data: updateData,
+    });
+
+    return c.json({ data: parseListing(updated as unknown as Record<string, unknown>) });
+  }
+);
+
+// PATCH /api/listings/:id/status  (admin only)
+const updateStatusSchema = z.object({
+  status: z.enum(["ACTIVE", "INACTIVE", "SOLD", "RENTED"]),
+});
+
+listingsRouter.patch(
+  "/listings/:id/status",
+  zValidator("json", updateStatusSchema),
+  async (c) => {
+    const sessionUser = c.get("user");
+    if (!sessionUser) {
+      return c.json({ error: { message: "Unauthorized", code: "UNAUTHORIZED" } }, 401);
+    }
+
+    const user = await requireAgent(c);
+    if (!user) {
+      return c.json({ error: { message: "Account not approved", code: "FORBIDDEN" } }, 403);
+    }
+
+    if (user.role !== "ADMIN") {
+      return c.json({ error: { message: "Forbidden", code: "FORBIDDEN" } }, 403);
+    }
+
+    const { id } = c.req.param();
+    const { status } = c.req.valid("json");
+
+    const existing = await prisma.listing.findUnique({ where: { id } });
+    if (!existing) {
+      return c.json({ error: { message: "Listing not found", code: "NOT_FOUND" } }, 404);
+    }
+
+    const updated = await prisma.listing.update({
+      where: { id },
+      data: { status },
     });
 
     return c.json({ data: parseListing(updated as unknown as Record<string, unknown>) });
