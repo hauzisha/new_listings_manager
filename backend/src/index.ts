@@ -4,6 +4,7 @@ import { cors } from "hono/cors";
 import { logger } from "hono/logger";
 import "./env";
 import { auth } from "./auth";
+import { authExtRouter } from "./routes/auth-ext";
 
 const app = new Hono<{
   Variables: {
@@ -49,6 +50,9 @@ app.use("*", async (c, next) => {
 
 // Health check
 app.get("/health", (c) => c.json({ status: "ok" }));
+
+// Extended auth routes (register, user-status) — must be mounted BEFORE Better Auth catch-all
+app.route("/api/auth", authExtRouter);
 
 // Better Auth routes
 app.on(["GET", "POST"], "/api/auth/*", (c) => auth.handler(c.req.raw));

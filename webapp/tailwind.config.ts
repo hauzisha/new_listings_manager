@@ -70,6 +70,8 @@ export default {
         sm: "calc(var(--radius) - 4px)",
       },
       fontFamily: {
+        display: ["Playfair Display", "serif"],
+        sans: ["DM Sans", "sans-serif"],
         syne: ["Syne", "sans-serif"],
       },
       keyframes: {
