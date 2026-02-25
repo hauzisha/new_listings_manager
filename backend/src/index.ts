@@ -54,6 +54,29 @@ app.use("*", async (c, next) => {
 // Health check
 app.get("/health", (c) => c.json({ status: "ok" }));
 
+// One-time admin bootstrap — promotes admin@hauzisha.co.ke to ADMIN if no admin exists yet
+// Safe to leave in: only works if there is currently no ADMIN user
+import { prisma } from "./prisma";
+app.post("/api/admin/bootstrap", async (c) => {
+  const existingAdmin = await prisma.user.findFirst({ where: { role: "ADMIN" } });
+  if (existingAdmin) {
+    return c.json({ error: { message: "An admin already exists", code: "ALREADY_EXISTS" } }, 409);
+  }
+  const user = await prisma.user.findUnique({ where: { email: "admin@hauzisha.co.ke" } });
+  if (!user) {
+    return c.json({ error: { message: "admin@hauzisha.co.ke not found", code: "NOT_FOUND" } }, 404);
+  }
+  await prisma.user.update({
+    where: { id: user.id },
+    data: {
+      role: "ADMIN",
+      isApproved: true,
+      permissions: JSON.stringify(["manage_users","manage_listings","manage_commissions","view_all","approve_users","system_settings"]),
+    },
+  });
+  return c.json({ data: { message: "Admin promoted successfully", userId: user.id } });
+});
+
 // Extended auth routes (register, user-status) — must be mounted BEFORE Better Auth catch-all
 app.route("/api/auth", authExtRouter);
 
