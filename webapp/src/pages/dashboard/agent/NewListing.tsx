@@ -325,17 +325,17 @@ function CommissionPreview({
 
 function SuccessDialog({
   open,
-  slug,
+  listing,
   onViewAll,
   onCreateAnother,
 }: {
   open: boolean;
-  slug: string;
+  listing: Listing | null;
   onViewAll: () => void;
   onCreateAnother: () => void;
 }) {
   const [copied, setCopied] = useState(false);
-  const url = `hauzisha.co.ke/listings/${slug}`;
+  const url = listing ? `hauzisha.co.ke/listings/${listing.slug}` : '';
 
   const handleCopy = () => {
     navigator.clipboard.writeText(url);
@@ -343,36 +343,95 @@ function SuccessDialog({
     setTimeout(() => setCopied(false), 2000);
   };
 
+  if (!listing) return null;
+
+  const isRental = listing.listingType === 'RENTAL';
+  const priceLabel = isRental
+    ? `KES ${listing.price.toLocaleString('en-KE')}/mo`
+    : `KES ${listing.price.toLocaleString('en-KE')}`;
+
+  const propertyLabel = listing.propertyType.charAt(0) + listing.propertyType.slice(1).toLowerCase();
+
   return (
     <Dialog open={open}>
-      <DialogContent className="max-w-sm">
-        <DialogHeader>
-          <div className="w-12 h-12 rounded-full bg-emerald-100 flex items-center justify-center mx-auto mb-2">
-            <CheckCircle className="w-6 h-6 text-emerald-600" />
+      <DialogContent className="max-w-md p-0 overflow-hidden gap-0">
+        {/* Royal blue header band */}
+        <div className="bg-primary px-6 pt-8 pb-6 text-center relative">
+          {/* Animated success ring */}
+          <div className="relative w-16 h-16 mx-auto mb-4">
+            <div className="absolute inset-0 rounded-full bg-white/20 animate-ping" style={{ animationDuration: '1.5s', animationIterationCount: 1 }} />
+            <div className="relative w-16 h-16 rounded-full bg-white flex items-center justify-center shadow-lg">
+              <CheckCircle className="w-8 h-8 text-primary" />
+            </div>
           </div>
-          <DialogTitle className="font-display text-center text-lg">Listing Created!</DialogTitle>
-        </DialogHeader>
-        <div className="space-y-4">
-          <div className="bg-muted rounded-lg p-3 flex items-center gap-2">
-            <p className="text-xs font-mono text-primary flex-1 truncate">{url}</p>
-            <button
-              type="button"
-              onClick={handleCopy}
-              className="text-muted-foreground hover:text-foreground flex-shrink-0"
-            >
-              {copied ? (
-                <CheckCircle className="w-4 h-4 text-emerald-500" />
-              ) : (
-                <ClipboardCopy className="w-4 h-4" />
+          <h2 className="font-display text-2xl font-bold text-white">Listing Created!</h2>
+          <p className="text-primary-foreground/70 text-sm mt-1">Your property is now live on Hauzisha</p>
+        </div>
+
+        {/* Content */}
+        <div className="px-6 py-5 space-y-4">
+          {/* Key listing details */}
+          <div className="bg-muted rounded-xl p-4 space-y-3">
+            <p className="text-sm font-semibold text-foreground font-display leading-snug">
+              {listing.title}
+            </p>
+            <div className="flex flex-wrap gap-2">
+              <span className={`inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full ${isRental ? 'bg-blue-100 text-blue-700' : 'bg-amber-100 text-amber-700'}`}>
+                {isRental ? 'For Rent' : 'For Sale'}
+              </span>
+              <span className="inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full bg-muted border border-border text-muted-foreground">
+                {propertyLabel}
+              </span>
+              {listing.status === 'ACTIVE' && (
+                <span className="inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-700">
+                  ● Active
+                </span>
               )}
-            </button>
+            </div>
+            <div className="flex items-center justify-between pt-1 border-t border-border">
+              <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                <span className="flex items-center gap-1">
+                  <MapPin className="w-3 h-3" />{listing.location}
+                </span>
+                {listing.bedrooms != null && listing.bedrooms > 0 && (
+                  <span className="flex items-center gap-1">
+                    <BedDouble className="w-3 h-3" />{listing.bedrooms} bd
+                  </span>
+                )}
+              </div>
+              <span className="text-sm font-bold text-foreground">{priceLabel}</span>
+            </div>
+            <div className="text-xs text-muted-foreground">
+              Listing #{listing.listingNumber}
+            </div>
           </div>
-          <div className="flex flex-col gap-2">
-            <Button className="w-full" onClick={onViewAll}>
-              View All Listings
-            </Button>
-            <Button variant="outline" className="w-full" onClick={onCreateAnother}>
+
+          {/* URL row */}
+          <div>
+            <p className="text-xs text-muted-foreground mb-1.5 font-medium">Listing URL</p>
+            <div className="flex items-center gap-2 bg-muted border border-border rounded-lg px-3 py-2.5">
+              <p className="text-xs font-mono text-primary flex-1 truncate">{url}</p>
+              <button
+                type="button"
+                onClick={handleCopy}
+                className="flex-shrink-0 flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors"
+              >
+                {copied ? (
+                  <><CheckCircle className="w-3.5 h-3.5 text-emerald-500" /><span className="text-emerald-500">Copied!</span></>
+                ) : (
+                  <><ClipboardCopy className="w-3.5 h-3.5" /><span>Copy</span></>
+                )}
+              </button>
+            </div>
+          </div>
+
+          {/* Action buttons */}
+          <div className="flex gap-2 pt-1">
+            <Button variant="outline" className="flex-1" onClick={onCreateAnother}>
               Create Another
+            </Button>
+            <Button className="flex-1" onClick={onViewAll}>
+              View All Listings
             </Button>
           </div>
         </div>
@@ -385,7 +444,7 @@ function SuccessDialog({
 
 export default function NewListing() {
   const navigate = useNavigate();
-  const [createdSlug, setCreatedSlug] = useState('');
+  const [createdListing, setCreatedListing] = useState<Listing | null>(null);
   const [showSuccess, setShowSuccess] = useState(false);
 
   // Local state for totalCommissionPct (UI only, not sent to API)
@@ -450,7 +509,7 @@ export default function NewListing() {
       api.post<Listing>('/api/listings', { ...data, images: [] }),
     onSuccess: (listing) => {
       toast.success('Listing created!', { description: 'Your listing is now live.' });
-      setCreatedSlug(listing.slug);
+      setCreatedListing(listing);
       setShowSuccess(true);
     },
     onError: (err: unknown) => {
@@ -485,7 +544,7 @@ export default function NewListing() {
     reset();
     setTotalCommissionPct('');
     setShowSuccess(false);
-    setCreatedSlug('');
+    setCreatedListing(null);
   };
 
   const toggleAmenity = (amenity: string, current: string[]) => {
@@ -1061,7 +1120,7 @@ export default function NewListing() {
       {/* Success dialog */}
       <SuccessDialog
         open={showSuccess}
-        slug={createdSlug}
+        listing={createdListing}
         onViewAll={() => navigate('/dashboard/agent/listings')}
         onCreateAnother={handleCreateAnother}
       />
