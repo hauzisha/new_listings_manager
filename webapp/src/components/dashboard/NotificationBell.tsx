@@ -70,7 +70,7 @@ export function NotificationBell() {
         >
           <Bell className="h-4.5 w-4.5 text-muted-foreground" />
           {unreadCount > 0 && (
-            <span className="absolute -top-0.5 -right-0.5 flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-primary text-[10px] font-bold text-white leading-none">
+            <span className="absolute -top-0.5 -right-0.5 flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-red-500 text-[10px] font-bold text-white leading-none">
               {unreadCount > 99 ? '99+' : unreadCount}
             </span>
           )}
@@ -78,7 +78,7 @@ export function NotificationBell() {
       </PopoverTrigger>
       <PopoverContent
         align="end"
-        className="w-[380px] p-0 shadow-xl border-border"
+        className="w-[360px] p-0 shadow-xl border-border"
         sideOffset={8}
       >
         {/* Header */}
@@ -111,7 +111,7 @@ export function NotificationBell() {
             </div>
           ) : notifications.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-10 gap-3 text-center px-4">
-              <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center">
+              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-muted to-secondary flex items-center justify-center">
                 <Bell className="w-5 h-5 text-muted-foreground" />
               </div>
               <p className="text-sm text-muted-foreground">No notifications yet</p>

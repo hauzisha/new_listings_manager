@@ -40,6 +40,15 @@ export function AuthLayout({ children, title, subtitle }: AuthLayoutProps) {
           }}
         />
 
+        {/* Grid lines layer */}
+        <div
+          className="absolute inset-0 opacity-[0.07]"
+          style={{
+            backgroundImage: `linear-gradient(rgba(255,255,255,0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.5) 1px, transparent 1px)`,
+            backgroundSize: "56px 56px",
+          }}
+        />
+
         {/* Top gradient overlay */}
         <div className="absolute top-0 left-0 right-0 h-32 bg-gradient-to-b from-primary/80 to-transparent z-10" />
         {/* Bottom gradient overlay */}
@@ -49,7 +58,10 @@ export function AuthLayout({ children, title, subtitle }: AuthLayoutProps) {
         <div className="relative z-20 flex flex-col h-full p-10 lg:p-14">
           {/* Wordmark */}
           <div>
-            <h1 className="font-display text-white text-4xl lg:text-5xl font-bold italic tracking-tight">
+            <h1
+              className="font-display text-white text-4xl lg:text-5xl font-bold italic tracking-tight"
+              style={{ textShadow: '0 0 60px rgba(255,255,255,0.15)' }}
+            >
               Hauzisha
             </h1>
             <p className="text-white/60 text-sm mt-1 font-sans tracking-widest uppercase">
@@ -88,18 +100,16 @@ export function AuthLayout({ children, title, subtitle }: AuthLayoutProps) {
               <p className="text-white/70 text-sm font-sans leading-relaxed max-w-sm">
                 Connecting buyers, agents &amp; promoters across Kenya — from Nairobi to Mombasa.
               </p>
-              <div className="flex items-center gap-6 mt-5">
-                <div>
+              <div className="flex items-center gap-3 mt-5">
+                <div className="bg-white/8 rounded-xl px-3 py-2 text-center">
                   <p className="text-white font-bold text-xl font-display">12,000+</p>
-                  <p className="text-white/50 text-xs font-sans mt-0.5">Properties Listed</p>
+                  <p className="text-white/50 text-xs font-sans mt-0.5">Properties</p>
                 </div>
-                <div className="w-px h-8 bg-white/20" />
-                <div>
+                <div className="bg-white/8 rounded-xl px-3 py-2 text-center">
                   <p className="text-white font-bold text-xl font-display">3,500+</p>
                   <p className="text-white/50 text-xs font-sans mt-0.5">Active Agents</p>
                 </div>
-                <div className="w-px h-8 bg-white/20" />
-                <div>
+                <div className="bg-white/8 rounded-xl px-3 py-2 text-center">
                   <p className="text-white font-bold text-xl font-display">47</p>
                   <p className="text-white/50 text-xs font-sans mt-0.5">Counties</p>
                 </div>
@@ -113,7 +123,10 @@ export function AuthLayout({ children, title, subtitle }: AuthLayoutProps) {
       <div className="flex-1 flex flex-col bg-background min-h-screen md:min-h-0">
         {/* Top bar */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-border bg-card md:px-10">
-          <span className="font-display text-primary text-2xl font-bold italic">Hauzisha</span>
+          <div className="flex items-center">
+            <Building2 className="w-5 h-5 text-primary mr-2" />
+            <span className="font-display text-primary text-2xl font-bold italic">Hauzisha</span>
+          </div>
           <span className="text-muted-foreground text-xs font-sans hidden sm:block">
             Kenya's Premier Property Platform
           </span>
@@ -122,7 +135,7 @@ export function AuthLayout({ children, title, subtitle }: AuthLayoutProps) {
         {/* Form content */}
         <div className="flex-1 flex items-start md:items-center justify-center px-6 py-8 md:px-10 lg:px-16 overflow-y-auto">
           <div className="w-full max-w-md">
-            <div className="mb-7">
+            <div className="mb-7 border-t-2 border-primary/20 pt-1">
               <h2 className="font-display text-3xl font-bold text-foreground">{title}</h2>
               <p className="text-muted-foreground text-sm mt-2 font-sans">{subtitle}</p>
             </div>

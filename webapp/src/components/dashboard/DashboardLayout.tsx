@@ -95,17 +95,17 @@ function SidebarNavItem({ item, isActive, onClick }: SidebarNavItemProps) {
       className={cn(
         'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150 group relative',
         isActive
-          ? 'bg-primary/10 text-primary'
-          : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+          ? 'bg-[hsl(var(--primary)/0.18)] text-[hsl(var(--sidebar-primary))]'
+          : 'text-[hsl(var(--sidebar-foreground)/0.65)] hover:bg-[hsl(var(--sidebar-accent))] hover:text-[hsl(var(--sidebar-foreground))]'
       )}
     >
       {isActive && (
-        <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 bg-primary rounded-r-full" />
+        <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 bg-[hsl(var(--sidebar-primary))] rounded-r-full" />
       )}
       <item.icon
         className={cn(
           'w-4 h-4 flex-shrink-0 transition-colors',
-          isActive ? 'text-primary' : 'text-muted-foreground group-hover:text-foreground'
+          isActive ? 'text-[hsl(var(--sidebar-primary))]' : 'text-[hsl(var(--sidebar-foreground)/0.65)] group-hover:text-[hsl(var(--sidebar-foreground))]'
         )}
       />
       <span>{item.label}</span>
@@ -168,14 +168,17 @@ export function DashboardLayout({ children, title }: DashboardLayoutProps) {
   const sidebarContent = (
     <div className="flex flex-col h-full">
       {/* Logo */}
-      <div className="px-5 py-5 border-b border-border">
+      <div className="px-5 py-5 border-b border-[hsl(var(--sidebar-border))]">
         <Link to={navItems[0].href} className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center flex-shrink-0">
+          <div className="w-8 h-8 rounded-lg bg-primary shadow-[0_0_12px_hsl(var(--primary)/0.5)] flex items-center justify-center flex-shrink-0">
             <Building2 className="w-4 h-4 text-white" />
           </div>
-          <span className="font-display text-primary text-xl font-bold italic tracking-tight">
-            Hauzisha
-          </span>
+          <div>
+            <span className="font-display text-white text-xl font-bold italic tracking-tight">
+              Hauzisha
+            </span>
+            <p className="text-[10px] text-[hsl(var(--sidebar-foreground)/0.4)] mt-0.5 font-sans tracking-widest uppercase leading-none">Property Platform</p>
+          </div>
         </Link>
       </div>
 
@@ -192,13 +195,13 @@ export function DashboardLayout({ children, title }: DashboardLayoutProps) {
       </nav>
 
       {/* User footer */}
-      <div className="px-4 py-4 border-t border-border">
+      <div className="px-4 py-4 border-t border-[hsl(var(--sidebar-border))]">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-            <span className="text-xs font-bold text-primary">{getInitials(user.name ?? '')}</span>
+          <div className="w-8 h-8 rounded-full bg-[hsl(var(--primary)/0.2)] flex items-center justify-center flex-shrink-0">
+            <span className="text-xs font-bold text-[hsl(var(--sidebar-primary))]">{getInitials(user.name ?? '')}</span>
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-foreground truncate leading-tight">
+            <p className="text-sm font-medium text-[hsl(var(--sidebar-foreground))] truncate leading-tight">
               {user.name}
             </p>
             <span
@@ -218,7 +221,10 @@ export function DashboardLayout({ children, title }: DashboardLayoutProps) {
   return (
     <div className="flex h-screen bg-background overflow-hidden">
       {/* Desktop Sidebar */}
-      <aside className="hidden md:flex flex-col w-60 bg-card border-r border-border flex-shrink-0">
+      <aside
+        className="hidden md:flex flex-col w-60 border-r border-[hsl(var(--sidebar-border))] flex-shrink-0"
+        style={{ background: 'linear-gradient(175deg, hsl(222 44% 11%) 0%, hsl(224 50% 8%) 100%)' }}
+      >
         {sidebarContent}
       </aside>
 
@@ -229,13 +235,16 @@ export function DashboardLayout({ children, title }: DashboardLayoutProps) {
             className="absolute inset-0 bg-black/30 backdrop-blur-sm"
             onClick={() => setMobileMenuOpen(false)}
           />
-          <aside className="relative z-10 w-64 bg-card border-r border-border flex flex-col h-full shadow-2xl">
-            <div className="flex items-center justify-between px-5 py-4 border-b border-border">
-              <span className="font-display text-primary text-xl font-bold italic">Hauzisha</span>
+          <aside
+            className="relative z-10 w-64 border-r border-[hsl(var(--sidebar-border))] flex flex-col h-full shadow-2xl"
+            style={{ background: 'linear-gradient(175deg, hsl(222 44% 11%) 0%, hsl(224 50% 8%) 100%)' }}
+          >
+            <div className="flex items-center justify-between px-5 py-4 border-b border-[hsl(var(--sidebar-border))]">
+              <span className="font-display text-white text-xl font-bold italic">Hauzisha</span>
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-8 w-8"
+                className="h-8 w-8 text-[hsl(var(--sidebar-foreground))] hover:bg-[hsl(var(--sidebar-accent))]"
                 onClick={() => setMobileMenuOpen(false)}
               >
                 <X className="w-4 h-4" />
@@ -251,13 +260,13 @@ export function DashboardLayout({ children, title }: DashboardLayoutProps) {
                 />
               ))}
             </nav>
-            <div className="px-4 py-4 border-t border-border">
+            <div className="px-4 py-4 border-t border-[hsl(var(--sidebar-border))]">
               <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-                  <span className="text-xs font-bold text-primary">{getInitials(user.name ?? '')}</span>
+                <div className="w-8 h-8 rounded-full bg-[hsl(var(--primary)/0.2)] flex items-center justify-center flex-shrink-0">
+                  <span className="text-xs font-bold text-[hsl(var(--sidebar-primary))]">{getInitials(user.name ?? '')}</span>
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-foreground truncate">{user.name}</p>
+                  <p className="text-sm font-medium text-[hsl(var(--sidebar-foreground))] truncate">{user.name}</p>
                   <span
                     className={cn(
                       'inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold border mt-0.5',
@@ -276,7 +285,7 @@ export function DashboardLayout({ children, title }: DashboardLayoutProps) {
       {/* Main content */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         {/* Top bar */}
-        <header className="flex items-center justify-between px-5 md:px-6 h-14 border-b border-border bg-card flex-shrink-0">
+        <header className="flex items-center justify-between px-5 md:px-6 h-[56px] border-b border-border bg-card flex-shrink-0 shadow-[0_1px_0_hsl(var(--border))]">
           <div className="flex items-center gap-3">
             {/* Mobile menu toggle */}
             <Button
@@ -288,7 +297,7 @@ export function DashboardLayout({ children, title }: DashboardLayoutProps) {
               <Menu className="w-4 h-4" />
             </Button>
             {title && (
-              <h2 className="font-display text-lg font-semibold text-foreground">{title}</h2>
+              <h2 className="font-display text-base font-semibold text-foreground">{title}</h2>
             )}
           </div>
 
@@ -345,7 +354,10 @@ export function DashboardLayout({ children, title }: DashboardLayoutProps) {
         </main>
 
         {/* Mobile bottom tab bar */}
-        <nav className="md:hidden flex items-stretch border-t border-border bg-card shadow-[0_-1px_8px_rgba(0,0,0,0.06)] flex-shrink-0">
+        <nav
+          className="md:hidden flex items-stretch border-t border-border shadow-[0_-1px_8px_rgba(0,0,0,0.06)] flex-shrink-0"
+          style={{ background: 'linear-gradient(to top, hsl(0 0% 100%), hsl(218 26% 98%))' }}
+        >
           {mobileNavItems.map((item) => {
             const active = isNavActive(item.href);
             return (
@@ -360,7 +372,9 @@ export function DashboardLayout({ children, title }: DashboardLayoutProps) {
                 {active && (
                   <span className="absolute top-0 left-1/2 -translate-x-1/2 w-5 h-0.5 rounded-full bg-primary" />
                 )}
-                <item.icon className="w-5 h-5" />
+                <span className={cn('rounded-lg px-1', active && 'bg-primary/[0.08]')}>
+                  <item.icon className="w-5 h-5" />
+                </span>
                 <span className="text-[10px] font-medium leading-tight">{item.label}</span>
               </Link>
             );

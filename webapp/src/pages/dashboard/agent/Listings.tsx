@@ -70,16 +70,16 @@ function ListingCard({ listing, onClick, onEdit }: { listing: Listing; onClick: 
 
   return (
     <div
-      className="bg-card border border-border rounded-xl overflow-hidden hover:shadow-md transition-all cursor-pointer group"
+      className="card-hover bg-card border border-border rounded-xl overflow-hidden cursor-pointer group"
       onClick={onClick}
     >
       {/* Image area */}
-      <div className="relative h-44 bg-blue-50 flex items-center justify-center overflow-hidden">
+      <div className="img-zoom-wrap relative h-44 bg-blue-50 flex items-center justify-center">
         {hasImage ? (
           <img
             src={listing.images[0]}
             alt={listing.title}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+            className="w-full h-full object-cover"
           />
         ) : (
           <Building2 className="w-12 h-12 text-blue-200" />
@@ -173,19 +173,21 @@ function StatCard({
   value,
   icon: Icon,
   iconClass,
+  topBorderClass,
 }: {
   label: string;
   value: number;
   icon: React.ComponentType<{ className?: string }>;
   iconClass: string;
+  topBorderClass: string;
 }) {
   return (
-    <div className="bg-card border border-border rounded-xl p-4 flex items-center gap-3">
-      <div className={cn('w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0', iconClass)}>
+    <div className={cn('card-hover bg-card border border-border border-t-2 rounded-xl p-4 flex items-center gap-3', topBorderClass)}>
+      <div className={cn('w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 shadow-inner', iconClass)}>
         <Icon className="w-5 h-5" />
       </div>
       <div>
-        <p className="text-2xl font-bold text-foreground">{value}</p>
+        <p className="text-3xl font-bold text-foreground">{value}</p>
         <p className="text-xs text-muted-foreground">{label}</p>
       </div>
     </div>
@@ -267,29 +269,33 @@ export default function AgentListings() {
             value={listings.length}
             icon={Building2}
             iconClass="bg-primary/10 text-primary"
+            topBorderClass="border-t-primary"
           />
           <StatCard
             label="Active"
             value={totalActive}
             icon={CheckCircle}
             iconClass="bg-emerald-100 text-emerald-600"
+            topBorderClass="border-t-emerald-500"
           />
           <StatCard
             label="Inactive"
             value={totalInactive}
             icon={EyeOff}
             iconClass="bg-gray-100 text-gray-500"
+            topBorderClass="border-t-gray-400"
           />
           <StatCard
             label="Sold / Rented"
             value={totalSoldRented}
             icon={TrendingUp}
             iconClass="bg-amber-100 text-amber-600"
+            topBorderClass="border-t-amber-500"
           />
         </div>
 
         {/* Filter tabs */}
-        <div className="flex gap-1 bg-muted p-1 rounded-lg w-fit">
+        <div className="flex gap-1 bg-muted/60 p-1 rounded-xl border border-border w-fit">
           {FILTER_TABS.map((tab) => (
             <button
               key={tab.value}
@@ -298,7 +304,7 @@ export default function AgentListings() {
               className={cn(
                 'px-3 py-1.5 rounded-md text-xs font-medium transition-all',
                 activeTab === tab.value
-                  ? 'bg-card text-foreground shadow-sm'
+                  ? 'bg-white text-foreground shadow-sm'
                   : 'text-muted-foreground hover:text-foreground'
               )}
             >
