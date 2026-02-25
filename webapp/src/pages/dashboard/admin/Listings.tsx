@@ -357,15 +357,21 @@ function ListingDetailDialog({
                   <p className="text-[10px] text-muted-foreground uppercase tracking-wide font-medium mb-3">Commission Split</p>
                   <div className="grid grid-cols-3 divide-x divide-border">
                     {[
-                      { label: "Agent", value: listing.agentCommissionPct },
-                      { label: "Promoter", value: listing.promoterCommissionPct },
-                      { label: "Company", value: listing.companyCommissionPct },
-                    ].map(({ label, value }) => (
-                      <div key={label} className="text-center px-2">
-                        <p className="text-xl font-bold text-foreground leading-none">{value}%</p>
-                        <p className="text-[11px] text-muted-foreground mt-1">{label}</p>
-                      </div>
-                    ))}
+                      { label: "Agent", pct: listing.agentCommissionPct },
+                      { label: "Promoter", pct: listing.promoterCommissionPct },
+                      { label: "Company", pct: listing.companyCommissionPct },
+                    ].map(({ label, pct }) => {
+                      const amount = listing.price * pct / 100;
+                      return (
+                        <div key={label} className="text-center px-2">
+                          <p className="text-xl font-bold text-foreground leading-none">{pct}%</p>
+                          <p className="text-xs font-medium text-primary mt-0.5">
+                            {formatKES(amount)}
+                          </p>
+                          <p className="text-[11px] text-muted-foreground mt-0.5">{label}</p>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               </div>
