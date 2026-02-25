@@ -73,17 +73,17 @@ type ListingFormValues = z.infer<typeof listingSchema>;
 
 // ─── Constants ─────────────────────────────────────────────────────────────────
 
-const PROPERTY_TYPES: { label: string; icon: React.ReactNode }[] = [
-  { label: 'Apartment', icon: <Building2 className="w-5 h-5" /> },
-  { label: 'Maisonette', icon: <Home className="w-5 h-5" /> },
-  { label: 'Villa', icon: <Castle className="w-5 h-5" /> },
-  { label: 'Studio', icon: <Layers className="w-5 h-5" /> },
-  { label: 'Bungalow', icon: <House className="w-5 h-5" /> },
-  { label: 'Duplex', icon: <Copy className="w-5 h-5" /> },
-  { label: 'Penthouse', icon: <Star className="w-5 h-5" /> },
-  { label: 'Townhouse', icon: <Hotel className="w-5 h-5" /> },
-  { label: 'Commercial Space', icon: <Briefcase className="w-5 h-5" /> },
-  { label: 'Land', icon: <Map className="w-5 h-5" /> },
+const PROPERTY_TYPES: { label: string; value: string; icon: React.ReactNode }[] = [
+  { label: 'Apartment', value: 'APARTMENT', icon: <Building2 className="w-5 h-5" /> },
+  { label: 'Maisonette', value: 'MAISONETTE', icon: <Home className="w-5 h-5" /> },
+  { label: 'Villa', value: 'VILLA', icon: <Castle className="w-5 h-5" /> },
+  { label: 'Studio', value: 'STUDIO', icon: <Layers className="w-5 h-5" /> },
+  { label: 'Bungalow', value: 'BUNGALOW', icon: <House className="w-5 h-5" /> },
+  { label: 'Duplex', value: 'DUPLEX', icon: <Copy className="w-5 h-5" /> },
+  { label: 'Penthouse', value: 'PENTHOUSE', icon: <Star className="w-5 h-5" /> },
+  { label: 'Townhouse', value: 'TOWNHOUSE', icon: <Hotel className="w-5 h-5" /> },
+  { label: 'Commercial Space', value: 'COMMERCIAL', icon: <Briefcase className="w-5 h-5" /> },
+  { label: 'Land', value: 'LAND', icon: <Map className="w-5 h-5" /> },
 ];
 
 const AMENITIES = [
@@ -584,14 +584,14 @@ export default function NewListing() {
                       name="propertyType"
                       render={({ field }) => (
                         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-3 xl:grid-cols-4 gap-2">
-                          {PROPERTY_TYPES.map(({ label, icon }) => (
+                          {PROPERTY_TYPES.map(({ label, value, icon }) => (
                             <button
-                              key={label}
+                              key={value}
                               type="button"
-                              onClick={() => field.onChange(label)}
+                              onClick={() => field.onChange(value)}
                               className={cn(
                                 'flex flex-col items-center gap-1.5 p-3 rounded-xl border-2 text-xs font-medium transition-all',
-                                field.value === label
+                                field.value === value
                                   ? 'border-primary bg-primary/10 text-primary'
                                   : 'border-border bg-background text-muted-foreground hover:border-muted-foreground'
                               )}
