@@ -1,0 +1,994 @@
+import { useState, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useForm, Controller } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+import { useQuery, useMutation } from '@tanstack/react-query';
+import { toast } from 'sonner';
+import {
+  Building2,
+  Home,
+  Layers,
+  House,
+  Copy,
+  Star,
+  Hotel,
+  Briefcase,
+  Map,
+  MapPin,
+  BedDouble,
+  Bath,
+  Square,
+  Sparkles,
+  X,
+  CheckCircle,
+  ClipboardCopy,
+  Castle,
+} from 'lucide-react';
+import { DashboardLayout } from '@/components/dashboard/DashboardLayout';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Skeleton } from '@/components/ui/skeleton';
+import { NumberStepper } from '@/components/listings/NumberStepper';
+import { api } from '@/lib/api';
+import type { Listing } from '@/lib/types';
+import { cn } from '@/lib/utils';
+
+// ─── Zod Schema ────────────────────────────────────────────────────────────────
+
+const listingSchema = z.object({
+  title: z.string().min(1, 'Title is required'),
+  listingType: z.enum(['RENTAL', 'SALE']),
+  nature: z.enum(['RESIDENTIAL', 'COMMERCIAL', 'MIXED']),
+  propertyType: z.string().min(1, 'Select a property type'),
+  location: z.string().min(1, 'Location is required'),
+  nearbyLandmarks: z.array(z.string()),
+  price: z.number().min(1, 'Price must be greater than 0'),
+  bedrooms: z.number().min(0),
+  bathrooms: z.number().min(0),
+  areaSqft: z.number().optional(),
+  areaUnit: z.enum(['sqft', 'sqm']),
+  description: z.string().min(50, 'Description must be at least 50 characters'),
+  amenities: z.array(z.string()),
+  status: z.enum(['ACTIVE', 'INACTIVE']),
+  agentCommissionPct: z.number().min(0).max(100),
+  promoterCommissionPct: z.number().min(0).max(100),
+  companyCommissionPct: z.number().min(0).max(100),
+});
+
+type ListingFormValues = z.infer<typeof listingSchema>;
+
+// ─── Constants ─────────────────────────────────────────────────────────────────
+
+const PROPERTY_TYPES: { label: string; icon: React.ReactNode }[] = [
+  { label: 'Apartment', icon: <Building2 className="w-5 h-5" /> },
+  { label: 'Maisonette', icon: <Home className="w-5 h-5" /> },
+  { label: 'Villa', icon: <Castle className="w-5 h-5" /> },
+  { label: 'Studio', icon: <Layers className="w-5 h-5" /> },
+  { label: 'Bungalow', icon: <House className="w-5 h-5" /> },
+  { label: 'Duplex', icon: <Copy className="w-5 h-5" /> },
+  { label: 'Penthouse', icon: <Star className="w-5 h-5" /> },
+  { label: 'Townhouse', icon: <Hotel className="w-5 h-5" /> },
+  { label: 'Commercial Space', icon: <Briefcase className="w-5 h-5" /> },
+  { label: 'Land', icon: <Map className="w-5 h-5" /> },
+];
+
+const AMENITIES = [
+  'Swimming Pool', 'Gym/Fitness Centre', '24hr Security', 'CCTV Surveillance',
+  'Backup Generator', 'Borehole Water', 'Solar Panels', 'Covered Parking',
+  'Visitor Parking', 'Lift/Elevator', 'Balcony', 'Garden/Compound',
+  'DSQ (Servant Quarter)', 'Staff Quarters', 'Wheelchair Access',
+  'Fibre Internet', 'Air Conditioning', 'Furnished', 'Pet Friendly',
+  'Gated Community', 'Intercom', 'Water Storage Tank',
+];
+
+// ─── Sub-components ─────────────────────────────────────────────────────────────
+
+function SectionCard({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <Card className="border-border">
+      <CardHeader className="pb-3">
+        <CardTitle className="text-sm font-semibold text-foreground">{title}</CardTitle>
+      </CardHeader>
+      <CardContent>{children}</CardContent>
+    </Card>
+  );
+}
+
+function TagInput({
+  values,
+  onChange,
+  placeholder,
+}: {
+  values: string[];
+  onChange: (v: string[]) => void;
+  placeholder?: string;
+}) {
+  const [input, setInput] = useState('');
+
+  const addTag = useCallback(
+    (raw: string) => {
+      const tag = raw.trim();
+      if (tag && !values.includes(tag)) {
+        onChange([...values, tag]);
+      }
+      setInput('');
+    },
+    [values, onChange]
+  );
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' || e.key === ',') {
+      e.preventDefault();
+      addTag(input);
+    } else if (e.key === 'Backspace' && input === '' && values.length > 0) {
+      onChange(values.slice(0, -1));
+    }
+  };
+
+  const removeTag = (tag: string) => onChange(values.filter((v) => v !== tag));
+
+  return (
+    <div className="flex flex-wrap gap-1.5 p-2 border border-input rounded-md min-h-[42px] bg-background focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-0">
+      {values.map((tag) => (
+        <span
+          key={tag}
+          className="flex items-center gap-1 bg-primary/10 text-primary text-xs px-2 py-0.5 rounded-full"
+        >
+          {tag}
+          <button type="button" onClick={() => removeTag(tag)} className="hover:text-primary/70">
+            <X className="w-3 h-3" />
+          </button>
+        </span>
+      ))}
+      <input
+        className="flex-1 min-w-[120px] bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+        value={input}
+        onChange={(e) => setInput(e.target.value)}
+        onKeyDown={handleKeyDown}
+        onBlur={() => input.trim() && addTag(input)}
+        placeholder={values.length === 0 ? placeholder : ''}
+      />
+    </div>
+  );
+}
+
+interface SlugPreviewData {
+  slug: string;
+  listingNumber: number;
+}
+
+function SlugPreviewCard({
+  propertyType,
+  listingType,
+  location,
+}: {
+  propertyType: string;
+  listingType: string;
+  location: string;
+}) {
+  const enabled = !!(propertyType && listingType && location);
+
+  const { data, isLoading } = useQuery({
+    queryKey: ['slug-preview', propertyType, listingType, location],
+    queryFn: () =>
+      api.get<SlugPreviewData>(
+        `/api/listings/slug-preview?propertyType=${encodeURIComponent(propertyType)}&listingType=${encodeURIComponent(listingType)}&location=${encodeURIComponent(location)}`
+      ),
+    enabled,
+    staleTime: 30_000,
+  });
+
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = () => {
+    if (data?.slug) {
+      navigator.clipboard.writeText(`hauzisha.co.ke/listings/${data.slug}`);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
+
+  return (
+    <Card className="border-border">
+      <CardHeader className="pb-2">
+        <CardTitle className="text-sm font-semibold text-foreground">URL Preview</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-2">
+        {!enabled ? (
+          <p className="text-xs text-muted-foreground">
+            Fill in property type, listing type and location to preview the URL.
+          </p>
+        ) : isLoading ? (
+          <div className="space-y-2">
+            <Skeleton className="h-3 w-24" />
+            <Skeleton className="h-3 w-full" />
+          </div>
+        ) : data ? (
+          <>
+            <p className="text-xs text-muted-foreground">
+              Listing Number:{' '}
+              <span className="font-mono font-semibold text-foreground">
+                #{String(data.listingNumber).padStart(6, '0')}
+              </span>
+            </p>
+            <div className="flex items-center gap-1.5">
+              <p className="text-xs font-mono text-primary truncate flex-1">
+                hauzisha.co.ke/listings/{data.slug}
+              </p>
+              <button
+                type="button"
+                onClick={handleCopy}
+                className="text-muted-foreground hover:text-foreground flex-shrink-0"
+              >
+                {copied ? (
+                  <CheckCircle className="w-3.5 h-3.5 text-emerald-500" />
+                ) : (
+                  <ClipboardCopy className="w-3.5 h-3.5" />
+                )}
+              </button>
+            </div>
+          </>
+        ) : (
+          <p className="text-xs text-muted-foreground">Could not generate preview.</p>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+function CommissionPreview({
+  price,
+  agentPct,
+  promoterPct,
+  companyPct,
+}: {
+  price: number;
+  agentPct: number;
+  promoterPct: number;
+  companyPct: number;
+}) {
+  const fmt = (n: number) => `KES ${Math.round(n).toLocaleString('en-KE')}`;
+
+  if (!price || price <= 0) {
+    return (
+      <p className="text-xs text-muted-foreground text-center py-3">
+        Enter a price to see commission preview
+      </p>
+    );
+  }
+
+  const agentAmt = (price * agentPct) / 100;
+  const promoterAmt = (price * promoterPct) / 100;
+  const companyAmt = (price * companyPct) / 100;
+  const totalPct = agentPct + promoterPct + companyPct;
+  const totalAmt = agentAmt + promoterAmt + companyAmt;
+
+  return (
+    <div className="bg-muted/50 rounded-lg p-3 space-y-1.5 text-xs">
+      <p className="text-muted-foreground mb-2">
+        On a{' '}
+        <span className="font-semibold text-foreground">{fmt(price)}</span> listing:
+      </p>
+      <div className="flex justify-between">
+        <span className="text-muted-foreground">Agent earns</span>
+        <span className="font-semibold text-foreground">
+          {fmt(agentAmt)} ({agentPct}%)
+        </span>
+      </div>
+      <div className="flex justify-between">
+        <span className="text-muted-foreground">Promoter earns</span>
+        <span className="font-semibold text-foreground">
+          {fmt(promoterAmt)} ({promoterPct}%)
+        </span>
+      </div>
+      <div className="flex justify-between">
+        <span className="text-muted-foreground">Company earns</span>
+        <span className="font-semibold text-foreground">
+          {fmt(companyAmt)} ({companyPct}%)
+        </span>
+      </div>
+      <div className="border-t border-border pt-1.5 flex justify-between font-semibold">
+        <span>Total commission</span>
+        <span>
+          {fmt(totalAmt)} ({totalPct}%)
+        </span>
+      </div>
+    </div>
+  );
+}
+
+// ─── Success Dialog ─────────────────────────────────────────────────────────────
+
+function SuccessDialog({
+  open,
+  slug,
+  onViewAll,
+  onCreateAnother,
+}: {
+  open: boolean;
+  slug: string;
+  onViewAll: () => void;
+  onCreateAnother: () => void;
+}) {
+  const [copied, setCopied] = useState(false);
+  const url = `hauzisha.co.ke/listings/${slug}`;
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(url);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  return (
+    <Dialog open={open}>
+      <DialogContent className="max-w-sm">
+        <DialogHeader>
+          <div className="w-12 h-12 rounded-full bg-emerald-100 flex items-center justify-center mx-auto mb-2">
+            <CheckCircle className="w-6 h-6 text-emerald-600" />
+          </div>
+          <DialogTitle className="font-display text-center text-lg">Listing Created!</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4">
+          <div className="bg-muted rounded-lg p-3 flex items-center gap-2">
+            <p className="text-xs font-mono text-primary flex-1 truncate">{url}</p>
+            <button
+              type="button"
+              onClick={handleCopy}
+              className="text-muted-foreground hover:text-foreground flex-shrink-0"
+            >
+              {copied ? (
+                <CheckCircle className="w-4 h-4 text-emerald-500" />
+              ) : (
+                <ClipboardCopy className="w-4 h-4" />
+              )}
+            </button>
+          </div>
+          <div className="flex flex-col gap-2">
+            <Button className="w-full" onClick={onViewAll}>
+              View All Listings
+            </Button>
+            <Button variant="outline" className="w-full" onClick={onCreateAnother}>
+              Create Another
+            </Button>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// ─── Main Component ─────────────────────────────────────────────────────────────
+
+export default function NewListing() {
+  const navigate = useNavigate();
+  const [createdSlug, setCreatedSlug] = useState('');
+  const [showSuccess, setShowSuccess] = useState(false);
+
+  const {
+    register,
+    handleSubmit,
+    control,
+    watch,
+    reset,
+    setValue,
+    formState: { errors },
+  } = useForm<ListingFormValues>({
+    resolver: zodResolver(listingSchema),
+    defaultValues: {
+      title: '',
+      listingType: 'RENTAL',
+      nature: 'RESIDENTIAL',
+      propertyType: '',
+      location: '',
+      nearbyLandmarks: [],
+      price: 0,
+      bedrooms: 0,
+      bathrooms: 0,
+      areaSqft: undefined,
+      areaUnit: 'sqft',
+      description: '',
+      amenities: [],
+      status: 'ACTIVE',
+      agentCommissionPct: 5,
+      promoterCommissionPct: 2,
+      companyCommissionPct: 3,
+    },
+  });
+
+  // Watch values for live previews
+  const watchedPropertyType = watch('propertyType');
+  const watchedListingType = watch('listingType');
+  const watchedLocation = watch('location');
+  const watchedPrice = watch('price');
+  const watchedBedrooms = watch('bedrooms');
+  const watchedBathrooms = watch('bathrooms');
+  const watchedNature = watch('nature');
+  const watchedAreaSqft = watch('areaSqft');
+  const watchedAreaUnit = watch('areaUnit');
+  const watchedAgentPct = watch('agentCommissionPct');
+  const watchedPromoterPct = watch('promoterCommissionPct');
+  const watchedCompanyPct = watch('companyCommissionPct');
+  const watchedAmenities = watch('amenities');
+  const watchedDescription = watch('description');
+
+  const [isGenerating, setIsGenerating] = useState(false);
+
+  const createMutation = useMutation({
+    mutationFn: (data: ListingFormValues) =>
+      api.post<Listing>('/api/listings', { ...data, images: [] }),
+    onSuccess: (listing) => {
+      toast.success('Listing created!', { description: 'Your listing is now live.' });
+      setCreatedSlug(listing.slug);
+      setShowSuccess(true);
+    },
+    onError: (err: unknown) => {
+      const msg = err instanceof Error ? err.message : 'Something went wrong';
+      toast.error('Failed to create listing', { description: msg });
+    },
+  });
+
+  const onSubmit = (data: ListingFormValues) => createMutation.mutate(data);
+
+  const handleGenerateDescription = async () => {
+    setIsGenerating(true);
+    try {
+      const result = await api.post<{ description: string }>('/api/listings/generate-description', {
+        propertyType: watchedPropertyType,
+        listingType: watchedListingType,
+        location: watchedLocation,
+        bedrooms: watchedBedrooms,
+        bathrooms: watchedBathrooms,
+        areaSqft: watchedAreaSqft,
+        amenities: watchedAmenities,
+      });
+      setValue('description', result.description);
+    } catch {
+      toast.error('Failed to generate description');
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  const handleCreateAnother = () => {
+    reset();
+    setShowSuccess(false);
+    setCreatedSlug('');
+  };
+
+  const toggleAmenity = (amenity: string, current: string[]) => {
+    if (current.includes(amenity)) {
+      setValue('amenities', current.filter((a) => a !== amenity));
+    } else {
+      setValue('amenities', [...current, amenity]);
+    }
+  };
+
+  return (
+    <DashboardLayout title="New Listing">
+      <div className="p-5 md:p-6">
+        <form onSubmit={handleSubmit(onSubmit)} noValidate>
+          <div className="flex flex-col lg:flex-row gap-6 items-start">
+            {/* ── LEFT COLUMN ── */}
+            <div className="flex-1 space-y-4 w-full">
+
+              {/* Section 1: Basic Information */}
+              <SectionCard title="Basic Information">
+                <div className="space-y-4">
+                  {/* Title */}
+                  <div className="space-y-1.5">
+                    <Label htmlFor="title" className="text-sm font-medium">
+                      Title <span className="text-destructive">*</span>
+                    </Label>
+                    <Input
+                      id="title"
+                      placeholder="e.g. Spacious 3-Bed Apartment in Westlands"
+                      className="h-10"
+                      {...register('title')}
+                    />
+                    {errors.title && (
+                      <p className="text-xs text-destructive">{errors.title.message}</p>
+                    )}
+                  </div>
+
+                  {/* Listing Type */}
+                  <div className="space-y-1.5">
+                    <Label className="text-sm font-medium">Listing Type</Label>
+                    <Controller
+                      control={control}
+                      name="listingType"
+                      render={({ field }) => (
+                        <div className="flex gap-2">
+                          {(['RENTAL', 'SALE'] as const).map((type) => (
+                            <button
+                              key={type}
+                              type="button"
+                              onClick={() => field.onChange(type)}
+                              className={cn(
+                                'flex-1 py-2.5 rounded-lg border-2 text-sm font-semibold transition-all',
+                                field.value === type
+                                  ? type === 'RENTAL'
+                                    ? 'border-primary bg-primary text-primary-foreground'
+                                    : 'border-amber-500 bg-amber-500 text-white'
+                                  : 'border-border bg-background text-muted-foreground hover:border-muted-foreground'
+                              )}
+                            >
+                              {type === 'RENTAL' ? 'For Rent' : 'For Sale'}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    />
+                  </div>
+
+                  {/* Nature */}
+                  <div className="space-y-1.5">
+                    <Label className="text-sm font-medium">Nature</Label>
+                    <Controller
+                      control={control}
+                      name="nature"
+                      render={({ field }) => (
+                        <div className="flex gap-2">
+                          {(['RESIDENTIAL', 'COMMERCIAL', 'MIXED'] as const).map((n) => (
+                            <button
+                              key={n}
+                              type="button"
+                              onClick={() => field.onChange(n)}
+                              className={cn(
+                                'flex-1 py-2 rounded-lg border text-xs font-medium transition-all',
+                                field.value === n
+                                  ? 'border-primary bg-primary/10 text-primary'
+                                  : 'border-border bg-background text-muted-foreground hover:border-muted-foreground'
+                              )}
+                            >
+                              {n === 'MIXED' ? 'Mixed Use' : n.charAt(0) + n.slice(1).toLowerCase()}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    />
+                  </div>
+
+                  {/* Property Type */}
+                  <div className="space-y-1.5">
+                    <Label className="text-sm font-medium">
+                      Property Type <span className="text-destructive">*</span>
+                    </Label>
+                    <Controller
+                      control={control}
+                      name="propertyType"
+                      render={({ field }) => (
+                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-3 xl:grid-cols-4 gap-2">
+                          {PROPERTY_TYPES.map(({ label, icon }) => (
+                            <button
+                              key={label}
+                              type="button"
+                              onClick={() => field.onChange(label)}
+                              className={cn(
+                                'flex flex-col items-center gap-1.5 p-3 rounded-xl border-2 text-xs font-medium transition-all',
+                                field.value === label
+                                  ? 'border-primary bg-primary/10 text-primary'
+                                  : 'border-border bg-background text-muted-foreground hover:border-muted-foreground'
+                              )}
+                            >
+                              {icon}
+                              <span>{label}</span>
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    />
+                    {errors.propertyType && (
+                      <p className="text-xs text-destructive">{errors.propertyType.message}</p>
+                    )}
+                  </div>
+                </div>
+              </SectionCard>
+
+              {/* Section 2: Location */}
+              <SectionCard title="Location">
+                <div className="space-y-4">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="location" className="text-sm font-medium">
+                      Location <span className="text-destructive">*</span>
+                    </Label>
+                    <div className="relative">
+                      <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                      <Input
+                        id="location"
+                        placeholder="e.g. Westlands, Nairobi"
+                        className="h-10 pl-9"
+                        {...register('location')}
+                      />
+                    </div>
+                    {errors.location && (
+                      <p className="text-xs text-destructive">{errors.location.message}</p>
+                    )}
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label className="text-sm font-medium">Nearby Landmarks</Label>
+                    <p className="text-xs text-muted-foreground">
+                      Press Enter or comma to add a landmark
+                    </p>
+                    <Controller
+                      control={control}
+                      name="nearbyLandmarks"
+                      render={({ field }) => (
+                        <TagInput
+                          values={field.value}
+                          onChange={field.onChange}
+                          placeholder="e.g. Sarit Centre, ABC Place..."
+                        />
+                      )}
+                    />
+                  </div>
+                </div>
+              </SectionCard>
+
+              {/* Section 3: Property Details */}
+              <SectionCard title="Property Details">
+                <div className="space-y-4">
+                  {/* Price */}
+                  <div className="space-y-1.5">
+                    <Label htmlFor="price" className="text-sm font-medium">
+                      Price (KES) <span className="text-destructive">*</span>
+                    </Label>
+                    <Controller
+                      control={control}
+                      name="price"
+                      render={({ field }) => (
+                        <>
+                          <Input
+                            id="price"
+                            type="number"
+                            min={0}
+                            placeholder="e.g. 45000"
+                            className="h-10"
+                            value={field.value || ''}
+                            onChange={(e) => field.onChange(Number(e.target.value))}
+                          />
+                          {field.value > 0 && (
+                            <p className="text-xs text-muted-foreground">
+                              KES {field.value.toLocaleString('en-KE')}
+                            </p>
+                          )}
+                        </>
+                      )}
+                    />
+                    {errors.price && (
+                      <p className="text-xs text-destructive">{errors.price.message}</p>
+                    )}
+                  </div>
+
+                  {/* Bedrooms + Bathrooms */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <Controller
+                      control={control}
+                      name="bedrooms"
+                      render={({ field }) => (
+                        <NumberStepper
+                          label="Bedrooms"
+                          icon={<BedDouble className="w-4 h-4" />}
+                          value={field.value ?? 0}
+                          onChange={field.onChange}
+                          min={0}
+                        />
+                      )}
+                    />
+                    <Controller
+                      control={control}
+                      name="bathrooms"
+                      render={({ field }) => (
+                        <NumberStepper
+                          label="Bathrooms"
+                          icon={<Bath className="w-4 h-4" />}
+                          value={field.value ?? 0}
+                          onChange={field.onChange}
+                          min={0}
+                        />
+                      )}
+                    />
+                  </div>
+
+                  {/* Area */}
+                  <div className="space-y-1.5">
+                    <Label className="text-sm font-medium flex items-center gap-1.5">
+                      <Square className="w-4 h-4 text-muted-foreground" />
+                      Area
+                    </Label>
+                    <div className="flex gap-2">
+                      <Controller
+                        control={control}
+                        name="areaSqft"
+                        render={({ field }) => (
+                          <Input
+                            type="number"
+                            min={0}
+                            placeholder="e.g. 1200"
+                            className="h-10 flex-1"
+                            value={field.value ?? ''}
+                            onChange={(e) =>
+                              field.onChange(e.target.value ? Number(e.target.value) : undefined)
+                            }
+                          />
+                        )}
+                      />
+                      <Controller
+                        control={control}
+                        name="areaUnit"
+                        render={({ field }) => (
+                          <div className="flex border border-input rounded-md overflow-hidden">
+                            {(['sqft', 'sqm'] as const).map((unit) => (
+                              <button
+                                key={unit}
+                                type="button"
+                                onClick={() => field.onChange(unit)}
+                                className={cn(
+                                  'px-3 text-xs font-medium transition-all',
+                                  field.value === unit
+                                    ? 'bg-primary text-primary-foreground'
+                                    : 'bg-background text-muted-foreground hover:bg-muted'
+                                )}
+                              >
+                                {unit}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Status */}
+                  <div className="space-y-1.5">
+                    <Label htmlFor="status" className="text-sm font-medium">Status</Label>
+                    <Controller
+                      control={control}
+                      name="status"
+                      render={({ field }) => (
+                        <Select value={field.value} onValueChange={field.onChange}>
+                          <SelectTrigger id="status" className="h-10">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="ACTIVE">Active</SelectItem>
+                            <SelectItem value="INACTIVE">Inactive</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      )}
+                    />
+                  </div>
+                </div>
+              </SectionCard>
+
+              {/* Section 4: Amenities */}
+              <SectionCard title="Amenities">
+                <Controller
+                  control={control}
+                  name="amenities"
+                  render={({ field }) => (
+                    <div className="flex flex-wrap gap-2">
+                      {AMENITIES.map((amenity) => {
+                        const selected = field.value.includes(amenity);
+                        return (
+                          <button
+                            key={amenity}
+                            type="button"
+                            onClick={() => toggleAmenity(amenity, field.value)}
+                            className={cn(
+                              'px-3 py-1.5 rounded-full text-xs font-medium border transition-all',
+                              selected
+                                ? 'bg-primary border-primary text-primary-foreground'
+                                : 'bg-background border-border text-muted-foreground hover:border-primary hover:text-primary'
+                            )}
+                          >
+                            {amenity}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                />
+              </SectionCard>
+
+              {/* Section 5: Description */}
+              <SectionCard title="Description">
+                <div className="space-y-3">
+                  <Textarea
+                    placeholder="Describe the property in detail — layout, finishes, views, access, neighbourhood..."
+                    rows={5}
+                    {...register('description')}
+                  />
+                  {errors.description && (
+                    <p className="text-xs text-destructive">{errors.description.message}</p>
+                  )}
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs text-muted-foreground">
+                      {watchedDescription.length} chars (min 50)
+                    </p>
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      size="sm"
+                      className="h-8 text-xs"
+                      onClick={handleGenerateDescription}
+                      disabled={isGenerating}
+                    >
+                      {isGenerating ? (
+                        <span className="w-3.5 h-3.5 border-2 border-current/30 border-t-current rounded-full animate-spin mr-1.5" />
+                      ) : (
+                        <Sparkles className="w-3.5 h-3.5 mr-1.5" />
+                      )}
+                      Generate with AI
+                    </Button>
+                  </div>
+                </div>
+              </SectionCard>
+
+              {/* Section 6: Commission Structure */}
+              <SectionCard title="Commission Structure">
+                <div className="space-y-4">
+                  <div className="grid grid-cols-3 gap-3">
+                    {(
+                      [
+                        { name: 'agentCommissionPct', label: 'Agent %' },
+                        { name: 'promoterCommissionPct', label: 'Promoter %' },
+                        { name: 'companyCommissionPct', label: 'Company %' },
+                      ] as const
+                    ).map(({ name, label }) => (
+                      <div key={name} className="space-y-1.5">
+                        <Label htmlFor={name} className="text-xs font-medium">
+                          {label}
+                        </Label>
+                        <Controller
+                          control={control}
+                          name={name}
+                          render={({ field }) => (
+                            <Input
+                              id={name}
+                              type="number"
+                              min={0}
+                              max={100}
+                              step={0.5}
+                              className="h-9 text-sm"
+                              value={field.value}
+                              onChange={(e) => field.onChange(Number(e.target.value))}
+                            />
+                          )}
+                        />
+                      </div>
+                    ))}
+                  </div>
+
+                  <CommissionPreview
+                    price={watchedPrice}
+                    agentPct={watchedAgentPct}
+                    promoterPct={watchedPromoterPct}
+                    companyPct={watchedCompanyPct}
+                  />
+                </div>
+              </SectionCard>
+
+              {/* Submit */}
+              <Button
+                type="submit"
+                className="w-full h-11 text-base font-semibold"
+                disabled={createMutation.isPending}
+              >
+                {createMutation.isPending ? (
+                  <>
+                    <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin mr-2" />
+                    Creating...
+                  </>
+                ) : (
+                  'Create Listing'
+                )}
+              </Button>
+            </div>
+
+            {/* ── RIGHT COLUMN (sticky, desktop only) ── */}
+            <div className="hidden lg:block w-72 xl:w-80 flex-shrink-0 sticky top-6 space-y-4">
+              {/* Slug Preview */}
+              <SlugPreviewCard
+                propertyType={watchedPropertyType}
+                listingType={watchedListingType}
+                location={watchedLocation}
+              />
+
+              {/* Listing Summary */}
+              <Card className="border-border">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-semibold text-foreground">
+                    Listing Summary
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-2 text-xs">
+                  <div className="flex flex-wrap gap-1.5">
+                    {watchedListingType && (
+                      <span
+                        className={cn(
+                          'px-2 py-0.5 rounded-full text-[10px] font-bold',
+                          watchedListingType === 'RENTAL'
+                            ? 'bg-blue-100 text-blue-700'
+                            : 'bg-amber-100 text-amber-700'
+                        )}
+                      >
+                        {watchedListingType === 'RENTAL' ? 'For Rent' : 'For Sale'}
+                      </span>
+                    )}
+                    {watchedNature && (
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-muted text-muted-foreground">
+                        {watchedNature === 'MIXED'
+                          ? 'Mixed Use'
+                          : watchedNature.charAt(0) + watchedNature.slice(1).toLowerCase()}
+                      </span>
+                    )}
+                  </div>
+                  {watchedPropertyType && (
+                    <p className="text-muted-foreground">
+                      Type:{' '}
+                      <span className="font-semibold text-foreground">{watchedPropertyType}</span>
+                    </p>
+                  )}
+                  {watchedLocation && (
+                    <p className="text-muted-foreground flex items-center gap-1">
+                      <MapPin className="w-3 h-3" />
+                      <span className="text-foreground">{watchedLocation}</span>
+                    </p>
+                  )}
+                  {watchedPrice > 0 && (
+                    <p className="font-bold text-foreground text-base">
+                      KES {watchedPrice.toLocaleString('en-KE')}
+                      {watchedListingType === 'RENTAL' ? '/mo' : ''}
+                    </p>
+                  )}
+                  {(watchedBedrooms > 0 || watchedBathrooms > 0 || watchedAreaSqft) && (
+                    <div className="flex items-center gap-3 text-muted-foreground">
+                      {watchedBedrooms > 0 && (
+                        <span className="flex items-center gap-1">
+                          <BedDouble className="w-3 h-3" />
+                          {watchedBedrooms}
+                        </span>
+                      )}
+                      {watchedBathrooms > 0 && (
+                        <span className="flex items-center gap-1">
+                          <Bath className="w-3 h-3" />
+                          {watchedBathrooms}
+                        </span>
+                      )}
+                      {watchedAreaSqft && (
+                        <span className="flex items-center gap-1">
+                          <Square className="w-3 h-3" />
+                          {watchedAreaSqft.toLocaleString('en-KE')} {watchedAreaUnit}
+                        </span>
+                      )}
+                    </div>
+                  )}
+                  {(!watchedPropertyType && !watchedLocation && !watchedPrice) && (
+                    <p className="text-muted-foreground/60 italic">
+                      Fill in the form to see a preview here.
+                    </p>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        </form>
+      </div>
+
+      {/* Success dialog */}
+      <SuccessDialog
+        open={showSuccess}
+        slug={createdSlug}
+        onViewAll={() => navigate('/dashboard/agent/listings')}
+        onCreateAnother={handleCreateAnother}
+      />
+    </DashboardLayout>
+  );
+}

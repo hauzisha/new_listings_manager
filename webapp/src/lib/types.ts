@@ -25,3 +25,30 @@ export interface SystemSettings {
   agent_response_sla_hours: number;
   stale_inquiry_threshold_days: number;
 }
+
+export interface Listing {
+  id: string;
+  listingNumber: number;
+  title: string;
+  slug: string;
+  listingType: 'RENTAL' | 'SALE';
+  nature: 'RESIDENTIAL' | 'COMMERCIAL' | 'MIXED';
+  propertyType: string;
+  location: string;
+  nearbyLandmarks: string[];
+  price: number;
+  bedrooms?: number;
+  bathrooms?: number;
+  areaSqft?: number;
+  areaUnit: 'sqft' | 'sqm';
+  description: string;
+  amenities: string[];
+  images: string[];
+  status: 'ACTIVE' | 'INACTIVE' | 'SOLD' | 'RENTED';
+  agentCommissionPct: number;
+  promoterCommissionPct: number;
+  companyCommissionPct: number;
+  createdById: string;
+  createdAt: string;
+  updatedAt: string;
+}

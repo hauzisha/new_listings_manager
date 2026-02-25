@@ -110,6 +110,9 @@ model Listing {
   bedrooms     Int?
   bathrooms    Int?
   areaSqft     Float?
+  nature       String   @default("RESIDENTIAL") // RESIDENTIAL | COMMERCIAL | MIXED
+  nearbyLandmarks String @default("[]")          // JSON array of strings
+  areaUnit     String   @default("sqft")          // "sqft" | "sqm"
   description  String
   amenities    String   @default("[]") // JSON array as string
   images       String   @default("[]") // JSON array of image URLs

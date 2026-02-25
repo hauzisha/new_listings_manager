@@ -6,6 +6,7 @@ import "./env";
 import { auth } from "./auth";
 import { authExtRouter } from "./routes/auth-ext";
 import { notificationsRouter } from "./routes/notifications";
+import { listingsRouter } from "./routes/listings";
 import { adminUsersRouter } from "./routes/admin/users";
 import { adminSettingsRouter } from "./routes/admin/settings";
 import { prisma } from "./prisma";
@@ -92,6 +93,9 @@ app.get("/api/me", (c) => {
 
 // Notifications routes
 app.route("/api", notificationsRouter);
+
+// Listings routes
+app.route("/api", listingsRouter);
 
 // Admin routes
 app.route("/api/admin", adminUsersRouter);
