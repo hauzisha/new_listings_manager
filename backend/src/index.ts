@@ -8,6 +8,7 @@ import { authExtRouter } from "./routes/auth-ext";
 import { notificationsRouter } from "./routes/notifications";
 import { adminUsersRouter } from "./routes/admin/users";
 import { adminSettingsRouter } from "./routes/admin/settings";
+import { prisma } from "./prisma";
 
 const app = new Hono<{
   Variables: {
@@ -56,7 +57,6 @@ app.get("/health", (c) => c.json({ status: "ok" }));
 
 // One-time admin bootstrap — promotes admin@hauzisha.co.ke to ADMIN if no admin exists yet
 // Safe to leave in: only works if there is currently no ADMIN user
-import { prisma } from "./prisma";
 app.post("/api/admin/bootstrap", async (c) => {
   const existingAdmin = await prisma.user.findFirst({ where: { role: "ADMIN" } });
   if (existingAdmin) {
