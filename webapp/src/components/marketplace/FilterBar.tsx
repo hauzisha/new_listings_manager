@@ -12,17 +12,17 @@ import {
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 
-const PROPERTY_TYPES = [
-  "Apartment",
-  "Maisonette",
-  "Villa",
-  "Studio",
-  "Bungalow",
-  "Duplex",
-  "Penthouse",
-  "Townhouse",
-  "Commercial",
-  "Land",
+const PROPERTY_TYPES: { label: string; value: string }[] = [
+  { label: "Apartment", value: "APARTMENT" },
+  { label: "Maisonette", value: "MAISONETTE" },
+  { label: "Villa", value: "VILLA" },
+  { label: "Studio", value: "STUDIO" },
+  { label: "Bungalow", value: "BUNGALOW" },
+  { label: "Duplex", value: "DUPLEX" },
+  { label: "Penthouse", value: "PENTHOUSE" },
+  { label: "Townhouse", value: "TOWNHOUSE" },
+  { label: "Commercial", value: "COMMERCIAL" },
+  { label: "Land", value: "LAND" },
 ];
 
 const LISTING_TYPES = [
@@ -148,8 +148,8 @@ export default function FilterBar() {
             <SelectContent>
               <SelectItem value="all">All Types</SelectItem>
               {PROPERTY_TYPES.map((pt) => (
-                <SelectItem key={pt} value={pt}>
-                  {pt}
+                <SelectItem key={pt.value} value={pt.value}>
+                  {pt.label}
                 </SelectItem>
               ))}
             </SelectContent>
