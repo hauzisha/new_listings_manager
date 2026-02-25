@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import {
   Building2,
@@ -12,11 +12,13 @@ import {
   Bath,
   Square,
   Pencil,
+  Share2,
 } from 'lucide-react';
 import { DashboardLayout } from '@/components/dashboard/DashboardLayout';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
+import { CreateLinkDialog } from './TrackingLinks';
 import { api } from '@/lib/api';
 import type { Listing } from '@/lib/types';
 import { cn } from '@/lib/utils';
@@ -63,7 +65,7 @@ function ListingTypePill({ listingType }: { listingType: Listing['listingType'] 
   );
 }
 
-function ListingCard({ listing, onClick, onEdit }: { listing: Listing; onClick: () => void; onEdit: (e: React.MouseEvent) => void }) {
+function ListingCard({ listing, onClick, onEdit, onShare }: { listing: Listing; onClick: () => void; onEdit: (e: React.MouseEvent) => void; onShare: (e: React.MouseEvent) => void }) {
   const hasImage = listing.images.length > 0;
   const visibleAmenities = listing.amenities.slice(0, 3);
   const extraAmenities = listing.amenities.length - 3;
@@ -158,6 +160,15 @@ function ListingCard({ listing, onClick, onEdit }: { listing: Listing; onClick: 
         <Button
           size="icon"
           variant="ghost"
+          className="h-7 w-7 flex-shrink-0 text-muted-foreground hover:text-primary"
+          title="Generate share link"
+          onClick={onShare}
+        >
+          <Share2 className="w-3.5 h-3.5" />
+        </Button>
+        <Button
+          size="icon"
+          variant="ghost"
           className="h-7 w-7 flex-shrink-0"
           onClick={onEdit}
         >
@@ -221,7 +232,9 @@ const FILTER_TABS: { label: string; value: FilterTab }[] = [
 
 export default function AgentListings() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState<FilterTab>('all');
+  const [shareListing, setShareListing] = useState<Listing | null>(null);
 
   const { data: listings = [], isLoading } = useQuery({
     queryKey: ['agent-listings'],
@@ -351,11 +364,25 @@ export default function AgentListings() {
                   e.stopPropagation();
                   navigate(`/dashboard/agent/listings/edit/${listing.id}`);
                 }}
+                onShare={(e) => {
+                  e.stopPropagation();
+                  setShareListing(listing);
+                }}
               />
             ))}
           </div>
         )}
       </div>
+
+      {/* Generate Share Link dialog */}
+      {shareListing && (
+        <CreateLinkDialog
+          open={!!shareListing}
+          prefillListingId={shareListing.id}
+          onClose={() => setShareListing(null)}
+          onCreated={() => queryClient.invalidateQueries({ queryKey: ['agent-tracking-links'] })}
+        />
+      )}
     </DashboardLayout>
   );
 }

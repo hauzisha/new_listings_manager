@@ -133,7 +133,7 @@ Located in `webapp/`. React + Vite + TailwindCSS + shadcn/ui.
 | `/dashboard/agent/listings/edit/:id` | Edit Listing | Same form prefilled, read-only slug, deactivate button |
 | `/dashboard/agent/listings/:id` | View Listing | Full read-only detail view with gallery, share, edit button |
 | `/dashboard/agent/inquiries` | Agent Inquiries | All stages, per-stage filter tabs, promoter attribution, platform badge, confirmation dialogs, auto-commission |
-| `/dashboard/agent/tracking-links` | Tracking Links | — |
+| `/dashboard/agent/tracking-links` | Tracking Links | Summary stats, desktop table (listing/platform/target/tag/clicks/inquiries/conv%/date), Generate Share Link dialog with URL + Copy + WhatsApp share, share shortcut on each listing card |
 | `/dashboard/agent/commissions` | Commissions | — |
 | `/dashboard/promoter` | Promoter Overview | Requires PROMOTER role |
 | `/dashboard/promoter/promotions` | My Promotions | — |

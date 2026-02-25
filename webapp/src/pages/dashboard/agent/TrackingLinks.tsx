@@ -9,8 +9,13 @@ import {
   MessageSquare,
   ExternalLink,
   Globe,
+  CheckCheck,
+  ArrowUpRight,
+  Tag,
+  MapPin,
+  TrendingUp,
 } from 'lucide-react';
-import { format } from 'date-fns';
+import { format, formatDistanceToNow } from 'date-fns';
 import { toast } from 'sonner';
 import { DashboardLayout } from '@/components/dashboard/DashboardLayout';
 import { Button } from '@/components/ui/button';
@@ -75,75 +80,116 @@ interface TrackingLink {
 
 // ─── Platform config ──────────────────────────────────────────────────────────
 
-const PLATFORM_CONFIG: Record<Platform, { label: string; className: string; iconChar: string }> = {
-  WHATSAPP: { label: 'WhatsApp', className: 'bg-green-100 text-green-700 border-green-200', iconChar: 'W' },
-  FACEBOOK: { label: 'Facebook', className: 'bg-blue-100 text-blue-700 border-blue-200', iconChar: 'f' },
-  INSTAGRAM: { label: 'Instagram', className: 'bg-pink-100 text-pink-700 border-pink-200', iconChar: 'IG' },
-  TWITTER_X: { label: 'X / Twitter', className: 'bg-gray-100 text-gray-800 border-gray-300', iconChar: 'X' },
-  TIKTOK: { label: 'TikTok', className: 'bg-gray-100 text-gray-800 border-gray-300', iconChar: 'TT' },
-  LINKEDIN: { label: 'LinkedIn', className: 'bg-blue-100 text-blue-800 border-blue-300', iconChar: 'in' },
-  EMAIL: { label: 'Email', className: 'bg-gray-100 text-gray-600 border-gray-200', iconChar: '@' },
-  SMS: { label: 'SMS', className: 'bg-gray-100 text-gray-600 border-gray-200', iconChar: 'SMS' },
-  WEBSITE: { label: 'Website', className: 'bg-blue-50 text-blue-600 border-blue-200', iconChar: 'www' },
-  OTHER: { label: 'Other', className: 'bg-gray-100 text-gray-500 border-gray-200', iconChar: '?' },
+const PLATFORM_CONFIG: Record<Platform, { label: string; className: string }> = {
+  WHATSAPP:  { label: 'WhatsApp',   className: 'bg-green-100 text-green-700 border-green-200'     },
+  FACEBOOK:  { label: 'Facebook',   className: 'bg-blue-100 text-blue-700 border-blue-200'        },
+  INSTAGRAM: { label: 'Instagram',  className: 'bg-pink-100 text-pink-700 border-pink-200'        },
+  TWITTER_X: { label: 'X / Twitter',className: 'bg-gray-100 text-gray-800 border-gray-300'       },
+  TIKTOK:    { label: 'TikTok',     className: 'bg-gray-100 text-gray-800 border-gray-300'       },
+  LINKEDIN:  { label: 'LinkedIn',   className: 'bg-blue-100 text-blue-800 border-blue-300'       },
+  EMAIL:     { label: 'Email',      className: 'bg-gray-100 text-gray-600 border-gray-200'       },
+  SMS:       { label: 'SMS',        className: 'bg-gray-100 text-gray-600 border-gray-200'       },
+  WEBSITE:   { label: 'Website',    className: 'bg-blue-50 text-blue-600 border-blue-200'        },
+  OTHER:     { label: 'Other',      className: 'bg-gray-100 text-gray-500 border-gray-200'       },
 };
 
 const PLATFORMS: Platform[] = [
-  'WHATSAPP',
-  'FACEBOOK',
-  'INSTAGRAM',
-  'TWITTER_X',
-  'TIKTOK',
-  'LINKEDIN',
-  'EMAIL',
-  'SMS',
-  'WEBSITE',
-  'OTHER',
+  'WHATSAPP', 'FACEBOOK', 'INSTAGRAM', 'TWITTER_X', 'TIKTOK',
+  'LINKEDIN', 'EMAIL', 'SMS', 'WEBSITE', 'OTHER',
 ];
 
 function PlatformBadge({ platform }: { platform: Platform }) {
   const cfg = PLATFORM_CONFIG[platform];
   return (
-    <span className={cn('inline-flex items-center text-[11px] font-semibold px-2.5 py-1 rounded-full border', cfg.className)}>
+    <span className={cn('inline-flex items-center text-[11px] font-semibold px-2.5 py-0.5 rounded-full border whitespace-nowrap', cfg.className)}>
       {cfg.label}
     </span>
   );
 }
 
-// ─── Stat mini card ───────────────────────────────────────────────────────────
+// ─── Copy Button (with 3-second "Copied!" state) ──────────────────────────────
 
-function MiniStat({ label, value, icon: Icon, className }: {
+function CopyButton({ url, size = 'md' }: { url: string; size?: 'sm' | 'md' }) {
+  const [copied, setCopied] = useState(false);
+
+  async function handleCopy() {
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopied(true);
+      toast.success('Link copied to clipboard', { duration: 3000 });
+      setTimeout(() => setCopied(false), 3000);
+    } catch {
+      toast.error('Failed to copy link');
+    }
+  }
+
+  if (size === 'sm') {
+    return (
+      <button
+        type="button"
+        onClick={handleCopy}
+        className={cn(
+          'flex-shrink-0 flex items-center gap-1 text-xs transition-colors rounded px-1.5 py-0.5',
+          copied ? 'text-emerald-600' : 'text-muted-foreground hover:text-foreground'
+        )}
+      >
+        {copied ? <CheckCheck className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+        {copied ? 'Copied!' : 'Copy'}
+      </button>
+    );
+  }
+
+  return (
+    <Button
+      variant="outline"
+      size="sm"
+      onClick={handleCopy}
+      className={cn('gap-1.5 h-8 px-3 text-xs', copied && 'border-emerald-300 text-emerald-700 bg-emerald-50')}
+    >
+      {copied ? <CheckCheck className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+      {copied ? 'Copied!' : 'Copy'}
+    </Button>
+  );
+}
+
+// ─── Summary stat card ────────────────────────────────────────────────────────
+
+function StatCard({ label, value, sub, icon: Icon, color }: {
   label: string;
-  value: number;
+  value: string | number;
+  sub?: string;
   icon: React.ComponentType<{ className?: string }>;
-  className?: string;
+  color: string;
 }) {
   return (
-    <div className={cn('bg-card border border-border rounded-xl px-4 py-3.5 flex items-center gap-3', className)}>
+    <div className={cn('bg-card border-t-2 border border-border rounded-xl p-4 flex items-center gap-3', color)}>
       <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
         <Icon className="w-4 h-4 text-primary" />
       </div>
       <div>
-        <p className="text-xl font-bold text-foreground leading-none">{value.toLocaleString()}</p>
+        <p className="text-2xl font-bold text-foreground leading-none">{typeof value === 'number' ? value.toLocaleString() : value}</p>
+        {sub && <p className="text-[10px] text-muted-foreground mt-0.5">{sub}</p>}
         <p className="text-xs text-muted-foreground mt-0.5">{label}</p>
       </div>
     </div>
   );
 }
 
-// ─── Create Dialog ────────────────────────────────────────────────────────────
+// ─── Create + Result Dialog ───────────────────────────────────────────────────
 
 interface CreateDialogProps {
   open: boolean;
   onClose: () => void;
   onCreated: () => void;
+  prefillListingId?: string;
 }
 
-function CreateLinkDialog({ open, onClose, onCreated }: CreateDialogProps) {
-  const [listingId, setListingId] = useState('');
+export function CreateLinkDialog({ open, onClose, onCreated, prefillListingId }: CreateDialogProps) {
+  const [listingId, setListingId] = useState(prefillListingId ?? '');
   const [platform, setPlatform] = useState<Platform>('WHATSAPP');
   const [customTag, setCustomTag] = useState('');
   const [targetLocation, setTargetLocation] = useState('');
+  const [createdUrl, setCreatedUrl] = useState<string | null>(null);
 
   const { data: listings = [] } = useQuery({
     queryKey: ['agent-listings-for-link'],
@@ -153,33 +199,109 @@ function CreateLinkDialog({ open, onClose, onCreated }: CreateDialogProps) {
 
   const mutation = useMutation({
     mutationFn: () =>
-      api.post('/api/tracking-links', {
+      api.post<{ shareUrl: string }>('/api/tracking-links', {
         listingId,
         platform,
         customTag: customTag.trim() || undefined,
         targetLocation: targetLocation.trim() || undefined,
       }),
-    onSuccess: () => {
-      toast.success('Tracking link created');
-      setListingId('');
-      setPlatform('WHATSAPP');
-      setCustomTag('');
-      setTargetLocation('');
+    onSuccess: (data) => {
+      toast.success('Share link generated!', { duration: 3000 });
+      setCreatedUrl(data.shareUrl);
       onCreated();
-      onClose();
     },
     onError: () => {
       toast.error('Failed to create tracking link');
     },
   });
 
+  function handleClose() {
+    setCreatedUrl(null);
+    setListingId(prefillListingId ?? '');
+    setPlatform('WHATSAPP');
+    setCustomTag('');
+    setTargetLocation('');
+    onClose();
+  }
+
+  function handleWhatsApp() {
+    if (!createdUrl) return;
+    const text = encodeURIComponent(`Check out this property: ${createdUrl}`);
+    window.open(`https://wa.me/?text=${text}`, '_blank', 'noopener noreferrer');
+  }
+
   const canSubmit = !!listingId && !!platform && !mutation.isPending;
 
+  // ── Result screen ────────────────────────────────────────────────────────
+  if (createdUrl) {
+    return (
+      <Dialog open={open} onOpenChange={(v) => { if (!v) handleClose(); }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="font-display flex items-center gap-2">
+              <span className="w-6 h-6 rounded-full bg-emerald-100 flex items-center justify-center">
+                <CheckCheck className="w-3.5 h-3.5 text-emerald-600" />
+              </span>
+              Link Generated!
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-4 py-1">
+            <p className="text-sm text-muted-foreground">Your tracking link is ready to share.</p>
+
+            {/* URL display */}
+            <div className="bg-muted/40 rounded-xl border border-border p-3 space-y-2">
+              <div className="flex items-center gap-2">
+                <Globe className="w-3.5 h-3.5 text-muted-foreground/60 flex-shrink-0" />
+                <p className="text-xs font-mono text-primary break-all">{createdUrl}</p>
+              </div>
+            </div>
+
+            {/* Actions */}
+            <div className="flex gap-2">
+              <CopyButton url={createdUrl} />
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-1.5 h-8 px-3 text-xs bg-green-50 border-green-300 text-green-700 hover:bg-green-100 flex-1"
+                onClick={handleWhatsApp}
+              >
+                <ArrowUpRight className="w-3.5 h-3.5" />
+                Share on WhatsApp
+              </Button>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="ghost" size="sm" onClick={handleClose}>
+              Done
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => {
+                setCreatedUrl(null);
+                setListingId(prefillListingId ?? '');
+                setPlatform('WHATSAPP');
+                setCustomTag('');
+                setTargetLocation('');
+              }}
+            >
+              <Plus className="w-3.5 h-3.5 mr-1.5" />
+              Create another
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    );
+  }
+
+  // ── Create screen ────────────────────────────────────────────────────────
   return (
-    <Dialog open={open} onOpenChange={(v) => { if (!v) onClose(); }}>
+    <Dialog open={open} onOpenChange={(v) => { if (!v) handleClose(); }}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle className="font-display">Create Tracking Link</DialogTitle>
+          <DialogTitle className="font-display">Generate Share Link</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-4 py-1">
@@ -222,41 +344,46 @@ function CreateLinkDialog({ open, onClose, onCreated }: CreateDialogProps) {
             </Select>
           </div>
 
-          {/* Custom Tag */}
-          <div className="space-y-1.5">
-            <label className="text-sm font-medium text-foreground">
-              Custom Tag <span className="text-muted-foreground font-normal">(optional)</span>
-            </label>
-            <input
-              type="text"
-              placeholder="e.g. summer-campaign"
-              value={customTag}
-              onChange={(e) => setCustomTag(e.target.value)}
-              className="w-full h-9 text-sm bg-background border border-input rounded-md px-3 outline-none focus:ring-2 focus:ring-ring transition-all"
-            />
-          </div>
-
-          {/* Target Location */}
-          <div className="space-y-1.5">
-            <label className="text-sm font-medium text-foreground">
-              Target Location <span className="text-muted-foreground font-normal">(optional)</span>
-            </label>
-            <input
-              type="text"
-              placeholder="e.g. Nairobi, Westlands"
-              value={targetLocation}
-              onChange={(e) => setTargetLocation(e.target.value)}
-              className="w-full h-9 text-sm bg-background border border-input rounded-md px-3 outline-none focus:ring-2 focus:ring-ring transition-all"
-            />
+          {/* Two-column row for optional fields */}
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium text-foreground flex items-center gap-1">
+                <MapPin className="w-3.5 h-3.5 text-muted-foreground" />
+                Target Location
+                <span className="text-muted-foreground font-normal text-xs">(optional)</span>
+              </label>
+              <input
+                type="text"
+                placeholder="e.g. Westlands"
+                value={targetLocation}
+                onChange={(e) => setTargetLocation(e.target.value)}
+                className="w-full h-9 text-sm bg-background border border-input rounded-md px-3 outline-none focus:ring-2 focus:ring-ring transition-all"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium text-foreground flex items-center gap-1">
+                <Tag className="w-3.5 h-3.5 text-muted-foreground" />
+                Tag
+                <span className="text-muted-foreground font-normal text-xs">(optional)</span>
+              </label>
+              <input
+                type="text"
+                placeholder="e.g. summer-promo"
+                value={customTag}
+                onChange={(e) => setCustomTag(e.target.value)}
+                className="w-full h-9 text-sm bg-background border border-input rounded-md px-3 outline-none focus:ring-2 focus:ring-ring transition-all"
+              />
+            </div>
           </div>
         </div>
 
         <DialogFooter className="gap-2">
-          <Button variant="outline" onClick={onClose} disabled={mutation.isPending}>
+          <Button variant="outline" onClick={handleClose} disabled={mutation.isPending}>
             Cancel
           </Button>
-          <Button onClick={() => mutation.mutate()} disabled={!canSubmit}>
-            {mutation.isPending ? 'Creating...' : 'Create Link'}
+          <Button onClick={() => mutation.mutate()} disabled={!canSubmit} className="gap-1.5">
+            <Link2 className="w-3.5 h-3.5" />
+            {mutation.isPending ? 'Generating...' : 'Generate Link'}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -264,111 +391,266 @@ function CreateLinkDialog({ open, onClose, onCreated }: CreateDialogProps) {
   );
 }
 
-// ─── Tracking Link Row ────────────────────────────────────────────────────────
+// ─── Desktop Table ────────────────────────────────────────────────────────────
 
-function TrackingLinkRow({
-  link,
+function DesktopTable({
+  links,
   onDelete,
 }: {
-  link: TrackingLink;
+  links: TrackingLink[];
   onDelete: (id: string) => void;
 }) {
-  const [confirmDelete, setConfirmDelete] = useState(false);
-
-  const handleCopy = async () => {
-    try {
-      await navigator.clipboard.writeText(link.shareUrl);
-      toast.success('Link copied to clipboard');
-    } catch {
-      toast.error('Failed to copy link');
-    }
-  };
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+  const deleteLink = links.find((l) => l.id === deleteId);
 
   return (
     <>
-      <div className="bg-card border border-border rounded-xl p-4 space-y-3">
-        {/* Top row */}
-        <div className="flex items-start justify-between gap-3">
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 flex-wrap mb-1">
-              <PlatformBadge platform={link.platform} />
-              {link.customTag && (
-                <span className="text-[10px] font-medium px-2 py-0.5 bg-muted text-muted-foreground rounded-full border border-border">
-                  {link.customTag}
-                </span>
-              )}
-            </div>
-            <p className="text-sm font-semibold text-foreground truncate">{link.listing.title}</p>
-            {link.targetLocation && (
-              <p className="text-xs text-muted-foreground mt-0.5">{link.targetLocation}</p>
-            )}
-          </div>
-          <Button
-            size="icon"
-            variant="ghost"
-            className="h-7 w-7 flex-shrink-0 text-destructive/70 hover:text-destructive hover:bg-destructive/10"
-            onClick={() => setConfirmDelete(true)}
-          >
-            <Trash2 className="w-3.5 h-3.5" />
-          </Button>
-        </div>
+      <div className="hidden md:block overflow-hidden rounded-xl border border-border bg-card">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b border-border bg-muted/40">
+              <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide">Listing</th>
+              <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide">Platform</th>
+              <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide">Target</th>
+              <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide">Tag</th>
+              <th className="text-right px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide">Clicks</th>
+              <th className="text-right px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide">Inquiries</th>
+              <th className="text-right px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide">Conv %</th>
+              <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide">Date</th>
+              <th className="text-right px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide">Actions</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-border">
+            {links.map((link) => {
+              const convPct =
+                link.clickCount > 0
+                  ? ((link.inquiryCount / link.clickCount) * 100).toFixed(1)
+                  : '—';
 
-        {/* Stats row */}
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-1.5 text-sm">
-            <MousePointerClick className="w-3.5 h-3.5 text-muted-foreground" />
-            <span className="font-semibold text-foreground">{link.clickCount.toLocaleString()}</span>
-            <span className="text-xs text-muted-foreground">clicks</span>
-          </div>
-          <div className="flex items-center gap-1.5 text-sm">
-            <MessageSquare className="w-3.5 h-3.5 text-muted-foreground" />
-            <span className="font-semibold text-foreground">{link.inquiryCount.toLocaleString()}</span>
-            <span className="text-xs text-muted-foreground">inquiries</span>
-          </div>
-          <span className="text-[10px] text-muted-foreground ml-auto">
-            {format(new Date(link.createdAt), 'MMM d, yyyy')}
-          </span>
-        </div>
+              return (
+                <tr key={link.id} className="hover:bg-muted/20 transition-colors group">
+                  {/* Listing */}
+                  <td className="px-4 py-3 max-w-[180px]">
+                    <p className="text-sm font-medium text-foreground truncate leading-tight">{link.listing.title}</p>
+                    <p className="text-[10px] text-muted-foreground font-mono mt-0.5 truncate">{link.listing.slug}</p>
+                  </td>
 
-        {/* URL row */}
-        <div className="flex items-center gap-2 bg-muted/40 rounded-lg px-3 py-2 border border-border">
-          <Globe className="w-3.5 h-3.5 text-muted-foreground/60 flex-shrink-0" />
-          <span className="text-xs font-mono text-primary truncate flex-1">{link.shareUrl}</span>
-          <button
-            type="button"
-            onClick={handleCopy}
-            className="flex-shrink-0 flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
-          >
-            <Copy className="w-3.5 h-3.5" />
-          </button>
-          <a
-            href={link.shareUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex-shrink-0 text-muted-foreground hover:text-foreground transition-colors"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <ExternalLink className="w-3.5 h-3.5" />
-          </a>
-        </div>
+                  {/* Platform */}
+                  <td className="px-4 py-3">
+                    <PlatformBadge platform={link.platform} />
+                  </td>
+
+                  {/* Target */}
+                  <td className="px-4 py-3">
+                    {link.targetLocation ? (
+                      <span className="text-xs text-foreground">{link.targetLocation}</span>
+                    ) : (
+                      <span className="text-xs text-muted-foreground/40">—</span>
+                    )}
+                  </td>
+
+                  {/* Tag */}
+                  <td className="px-4 py-3">
+                    {link.customTag ? (
+                      <span className="inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 bg-muted text-muted-foreground rounded-full border border-border">
+                        <Tag className="w-2.5 h-2.5" />
+                        {link.customTag}
+                      </span>
+                    ) : (
+                      <span className="text-xs text-muted-foreground/40">—</span>
+                    )}
+                  </td>
+
+                  {/* Clicks */}
+                  <td className="px-4 py-3 text-right">
+                    <span className="text-sm font-semibold text-foreground">{link.clickCount.toLocaleString()}</span>
+                  </td>
+
+                  {/* Inquiries */}
+                  <td className="px-4 py-3 text-right">
+                    <span className="text-sm font-semibold text-foreground">{link.inquiryCount.toLocaleString()}</span>
+                  </td>
+
+                  {/* Conversion % */}
+                  <td className="px-4 py-3 text-right">
+                    <span className={cn(
+                      'text-sm font-semibold',
+                      convPct !== '—' && parseFloat(convPct) > 5 ? 'text-emerald-600' : 'text-foreground'
+                    )}>
+                      {convPct}{convPct !== '—' && '%'}
+                    </span>
+                  </td>
+
+                  {/* Date */}
+                  <td className="px-4 py-3">
+                    <p className="text-xs text-foreground">{formatDistanceToNow(new Date(link.createdAt), { addSuffix: true })}</p>
+                    <p className="text-[10px] text-muted-foreground">{format(new Date(link.createdAt), 'MMM d, yyyy')}</p>
+                  </td>
+
+                  {/* Actions */}
+                  <td className="px-4 py-3">
+                    <div className="flex items-center justify-end gap-1">
+                      <CopyButton url={link.shareUrl} size="sm" />
+                      <a
+                        href={link.shareUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="p-1 text-muted-foreground hover:text-foreground transition-colors rounded"
+                      >
+                        <ExternalLink className="w-3.5 h-3.5" />
+                      </a>
+                      <button
+                        type="button"
+                        className="p-1 text-destructive/40 hover:text-destructive transition-colors rounded opacity-0 group-hover:opacity-100"
+                        onClick={() => setDeleteId(link.id)}
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
       </div>
 
-      {/* Confirm delete dialog */}
-      <AlertDialog open={confirmDelete} onOpenChange={setConfirmDelete}>
+      {/* Delete dialog */}
+      <AlertDialog open={!!deleteId} onOpenChange={(v) => { if (!v) setDeleteId(null); }}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Delete tracking link?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will permanently delete the tracking link for <strong>{link.listing.title}</strong> ({PLATFORM_CONFIG[link.platform].label}). This action cannot be undone.
+              This will permanently delete the {deleteLink ? PLATFORM_CONFIG[deleteLink.platform].label : ''} link
+              for <strong>{deleteLink?.listing.title}</strong>. This cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel onClick={() => setDeleteId(null)}>Cancel</AlertDialogCancel>
             <AlertDialogAction
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               onClick={() => {
-                setConfirmDelete(false);
-                onDelete(link.id);
+                if (deleteId) onDelete(deleteId);
+                setDeleteId(null);
+              }}
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
+  );
+}
+
+// ─── Mobile card list ─────────────────────────────────────────────────────────
+
+function MobileList({
+  links,
+  onDelete,
+}: {
+  links: TrackingLink[];
+  onDelete: (id: string) => void;
+}) {
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+  const deleteLink = links.find((l) => l.id === deleteId);
+
+  return (
+    <>
+      <div className="md:hidden space-y-3">
+        {links.map((link) => {
+          const convPct =
+            link.clickCount > 0
+              ? ((link.inquiryCount / link.clickCount) * 100).toFixed(1) + '%'
+              : '—';
+
+          return (
+            <div key={link.id} className="bg-card border border-border rounded-xl p-4 space-y-3">
+              {/* Top */}
+              <div className="flex items-start justify-between gap-2">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap mb-1">
+                    <PlatformBadge platform={link.platform} />
+                    {link.customTag && (
+                      <span className="inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 bg-muted text-muted-foreground rounded-full border border-border">
+                        <Tag className="w-2.5 h-2.5" />{link.customTag}
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-sm font-semibold text-foreground truncate">{link.listing.title}</p>
+                  {link.targetLocation && (
+                    <p className="text-xs text-muted-foreground mt-0.5 flex items-center gap-1">
+                      <MapPin className="w-3 h-3" />{link.targetLocation}
+                    </p>
+                  )}
+                </div>
+                <button
+                  type="button"
+                  className="p-1.5 rounded-lg text-destructive/50 hover:text-destructive hover:bg-destructive/10 transition-colors"
+                  onClick={() => setDeleteId(link.id)}
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                </button>
+              </div>
+
+              {/* Stats */}
+              <div className="flex items-center gap-4 text-sm">
+                <div className="flex items-center gap-1.5">
+                  <MousePointerClick className="w-3.5 h-3.5 text-muted-foreground" />
+                  <span className="font-semibold text-foreground">{link.clickCount.toLocaleString()}</span>
+                  <span className="text-xs text-muted-foreground">clicks</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <MessageSquare className="w-3.5 h-3.5 text-muted-foreground" />
+                  <span className="font-semibold text-foreground">{link.inquiryCount.toLocaleString()}</span>
+                  <span className="text-xs text-muted-foreground">inquiries</span>
+                </div>
+                <div className="flex items-center gap-1.5 ml-auto">
+                  <TrendingUp className="w-3.5 h-3.5 text-muted-foreground" />
+                  <span className="font-semibold text-foreground text-xs">{convPct}</span>
+                </div>
+              </div>
+
+              {/* URL */}
+              <div className="flex items-center gap-2 bg-muted/40 rounded-lg px-3 py-2 border border-border">
+                <Globe className="w-3.5 h-3.5 text-muted-foreground/60 flex-shrink-0" />
+                <span className="text-xs font-mono text-primary truncate flex-1">{link.shareUrl}</span>
+                <CopyButton url={link.shareUrl} size="sm" />
+                <a
+                  href={link.shareUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  <ExternalLink className="w-3.5 h-3.5" />
+                </a>
+              </div>
+
+              <p className="text-[10px] text-muted-foreground">
+                {formatDistanceToNow(new Date(link.createdAt), { addSuffix: true })} · {format(new Date(link.createdAt), 'MMM d, yyyy')}
+              </p>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Delete dialog */}
+      <AlertDialog open={!!deleteId} onOpenChange={(v) => { if (!v) setDeleteId(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete tracking link?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Permanently delete the {deleteLink ? PLATFORM_CONFIG[deleteLink.platform].label : ''} link
+              for <strong>{deleteLink?.listing.title}</strong>?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setDeleteId(null)}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => {
+                if (deleteId) onDelete(deleteId);
+                setDeleteId(null);
               }}
             >
               Delete
@@ -390,19 +672,7 @@ function TrackingLinksSkeleton() {
           <Skeleton key={i} className="h-16 rounded-xl" />
         ))}
       </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {Array.from({ length: 6 }).map((_, i) => (
-          <div key={i} className="bg-card border border-border rounded-xl p-4 space-y-3">
-            <Skeleton className="h-5 w-24 rounded-full" />
-            <Skeleton className="h-4 w-full" />
-            <div className="flex gap-4">
-              <Skeleton className="h-4 w-16" />
-              <Skeleton className="h-4 w-16" />
-            </div>
-            <Skeleton className="h-9 w-full rounded-lg" />
-          </div>
-        ))}
-      </div>
+      <Skeleton className="h-64 rounded-xl" />
     </div>
   );
 }
@@ -431,6 +701,11 @@ export default function AgentTrackingLinks() {
 
   const totalClicks = links.reduce((sum, l) => sum + l.clickCount, 0);
   const totalInquiries = links.reduce((sum, l) => sum + l.inquiryCount, 0);
+  const overallConv =
+    totalClicks > 0 ? ((totalInquiries / totalClicks) * 100).toFixed(1) + '%' : '—';
+
+  const handleDelete = (id: string) => deleteMutation.mutate(id);
+  const handleCreated = () => queryClient.invalidateQueries({ queryKey: ['agent-tracking-links'] });
 
   if (isLoading) {
     return (
@@ -447,25 +722,35 @@ export default function AgentTrackingLinks() {
         <div className="flex items-center justify-between gap-3">
           <div>
             <h2 className="font-display text-lg font-semibold text-foreground">Tracking Links</h2>
-            <p className="text-sm text-muted-foreground mt-0.5">Generate shareable links and track performance by platform</p>
+            <p className="text-sm text-muted-foreground mt-0.5">
+              {links.length > 0
+                ? `${links.length} link${links.length !== 1 ? 's' : ''} · Share and track performance by platform`
+                : 'Generate links to share on any platform and track exactly where your leads come from'}
+            </p>
           </div>
           <Button
-            className="h-9 px-4 text-sm font-semibold"
+            className="h-9 px-4 text-sm font-semibold gap-1.5"
             onClick={() => setCreateOpen(true)}
           >
-            <Plus className="w-4 h-4 mr-1.5" />
-            Create Link
+            <Plus className="w-4 h-4" />
+            Generate Share Link
           </Button>
         </div>
 
         {/* Stats */}
         <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-          <MiniStat label="Total Links" value={links.length} icon={Link2} />
-          <MiniStat label="Total Clicks" value={totalClicks} icon={MousePointerClick} />
-          <MiniStat label="Inquiries Generated" value={totalInquiries} icon={MessageSquare} className="col-span-2 md:col-span-1" />
+          <StatCard label="Total Links" value={links.length} icon={Link2} color="border-t-primary" />
+          <StatCard label="Total Clicks" value={totalClicks} icon={MousePointerClick} color="border-t-blue-500" />
+          <StatCard
+            label="Inquiries"
+            value={totalInquiries}
+            sub={`${overallConv} conversion`}
+            icon={MessageSquare}
+            color="border-t-emerald-500 col-span-2 md:col-span-1"
+          />
         </div>
 
-        {/* Links grid */}
+        {/* Empty state */}
         {links.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 text-center">
             <div className="w-14 h-14 rounded-2xl bg-muted flex items-center justify-center mb-4">
@@ -473,23 +758,20 @@ export default function AgentTrackingLinks() {
             </div>
             <h3 className="font-display font-semibold text-foreground mb-1">No tracking links yet</h3>
             <p className="text-sm text-muted-foreground mb-6 max-w-xs">
-              Create tracking links for your listings to share on social platforms and monitor performance.
+              Create tracking links for your listings to share on WhatsApp, Instagram, and other platforms. See exactly where each lead comes from.
             </p>
-            <Button onClick={() => setCreateOpen(true)}>
-              <Plus className="w-4 h-4 mr-1.5" />
-              Create your first link
+            <Button onClick={() => setCreateOpen(true)} className="gap-1.5">
+              <Plus className="w-4 h-4" />
+              Generate your first link
             </Button>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {links.map((link) => (
-              <TrackingLinkRow
-                key={link.id}
-                link={link}
-                onDelete={(id) => deleteMutation.mutate(id)}
-              />
-            ))}
-          </div>
+          <>
+            {/* Desktop table */}
+            <DesktopTable links={links} onDelete={handleDelete} />
+            {/* Mobile cards */}
+            <MobileList links={links} onDelete={handleDelete} />
+          </>
         )}
       </div>
 
@@ -497,7 +779,7 @@ export default function AgentTrackingLinks() {
       <CreateLinkDialog
         open={createOpen}
         onClose={() => setCreateOpen(false)}
-        onCreated={() => queryClient.invalidateQueries({ queryKey: ['agent-tracking-links'] })}
+        onCreated={handleCreated}
       />
     </DashboardLayout>
   );
