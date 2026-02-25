@@ -5,6 +5,9 @@ import { z } from "zod";
 import { auth } from "../auth";
 import { prisma } from "../prisma";
 import { generateRefCode } from "../lib/listings";
+import { env } from "../env";
+
+const APP_BASE_URL = env.VITE_BASE_URL;
 
 type HonoVariables = {
   user: typeof auth.$Infer.Session.user | null;
@@ -28,6 +31,20 @@ async function requireApprovedUser(
   });
   if (!user || !user.isApproved) return null;
   return user;
+}
+
+/**
+ * Hash a visitor's identity for click deduplication using a 10-minute window.
+ * Never stores raw IP — uses SHA-256 of (IP + UserAgent + 10-min bucket).
+ */
+async function hashVisitor10min(ip: string, userAgent: string): Promise<string> {
+  const bucket = Math.floor(Date.now() / 600000); // 10-minute bucket
+  const raw = `${ip}:${userAgent}:${bucket}`;
+  const hashBuffer = await crypto.subtle.digest(
+    "SHA-256",
+    new TextEncoder().encode(raw)
+  );
+  return btoa(String.fromCharCode(...new Uint8Array(hashBuffer))).slice(0, 32);
 }
 
 // ─── Schemas ──────────────────────────────────────────────────────────────────
@@ -80,7 +97,7 @@ trackingLinksRouter.get("/tracking-links", async (c) => {
 
   const result = links.map((link) => ({
     ...link,
-    shareUrl: `https://hauzisha.co.ke/l/${link.refCode}`,
+    shareUrl: `${APP_BASE_URL}/listings/${link.listing.slug}/r/${link.refCode}`,
   }));
 
   return c.json({ data: result });
@@ -114,6 +131,55 @@ trackingLinksRouter.delete("/tracking-links/:id", async (c) => {
   return c.json({ data: { success: true } });
 });
 
+// POST /api/tracking-links/:refCode/click  (public — no auth required)
+trackingLinksRouter.post("/tracking-links/:refCode/click", async (c) => {
+  const { refCode } = c.req.param();
+
+  const trackingLink = await prisma.trackingLink.findUnique({
+    where: { refCode },
+    select: { id: true },
+  });
+
+  if (!trackingLink) {
+    return c.json({ error: { message: "Tracking link not found", code: "NOT_FOUND" } }, 404);
+  }
+
+  const forwardedFor = c.req.header("x-forwarded-for");
+  const realIp = c.req.header("x-real-ip");
+  const ip = (forwardedFor ? (forwardedFor.split(",")[0] ?? "").trim() : null) ?? realIp ?? "unknown";
+  const userAgent = c.req.header("user-agent") ?? "";
+
+  const visitorHash = await hashVisitor10min(ip, userAgent);
+
+  const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000);
+  const duplicate = await prisma.clickEvent.findFirst({
+    where: {
+      trackingLinkId: trackingLink.id,
+      visitorHash,
+      timestamp: { gt: tenMinutesAgo },
+    },
+    select: { id: true },
+  });
+
+  if (duplicate) {
+    return c.json({ data: { recorded: false, reason: "duplicate" } });
+  }
+
+  await prisma.clickEvent.create({
+    data: {
+      trackingLinkId: trackingLink.id,
+      visitorHash,
+    },
+  });
+
+  await prisma.trackingLink.update({
+    where: { id: trackingLink.id },
+    data: { clickCount: { increment: 1 } },
+  });
+
+  return c.json({ data: { recorded: true } });
+});
+
 // POST /api/tracking-links
 trackingLinksRouter.post(
   "/tracking-links",
@@ -133,7 +199,7 @@ trackingLinksRouter.post(
 
     const listing = await prisma.listing.findUnique({
       where: { id: body.listingId },
-      select: { id: true, createdById: true },
+      select: { id: true, slug: true, createdById: true },
     });
 
     if (!listing) {
@@ -152,6 +218,7 @@ trackingLinksRouter.post(
         listingId: body.listingId,
         creatorId: user.id,
         creatorRole: user.role,
+        promoterId: user.role === "PROMOTER" ? user.id : null,
         platform: body.platform,
         targetLocation: body.targetLocation ?? null,
         customTag: body.customTag ?? null,
@@ -169,7 +236,7 @@ trackingLinksRouter.post(
       },
     });
 
-    const shareUrl = `https://hauzisha.co.ke/l/${trackingLink.refCode}`;
+    const shareUrl = `${APP_BASE_URL}/listings/${listing.slug}/r/${trackingLink.refCode}`;
 
     return c.json({ data: { ...trackingLink, shareUrl } }, 201);
   }

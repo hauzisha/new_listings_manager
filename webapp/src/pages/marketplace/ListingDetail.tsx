@@ -332,7 +332,13 @@ export default function ListingDetail() {
   const refSaved = useRef(false);
 
   useEffect(() => {
-    if (ref && !refSaved.current) { saveRef(ref); refSaved.current = true; }
+    if (ref && !refSaved.current) {
+      refSaved.current = true;
+      // Persist ref locally for 30 days
+      saveRef(ref);
+      // Record click server-side (fire-and-forget, no auth needed)
+      api.post(`/api/tracking-links/${ref}/click`).catch(() => {/* silent */});
+    }
   }, [ref]);
 
   const storedRef = loadRef();

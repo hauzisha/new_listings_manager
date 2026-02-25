@@ -7,6 +7,7 @@ const envSchema = z.object({
   BETTER_AUTH_SECRET: z.string().min(1, "BETTER_AUTH_SECRET is required"),
   BACKEND_URL: z.string().optional().default("http://localhost:3000"),
   OPENAI_API_KEY: z.string().optional(),
+  VITE_BASE_URL: z.string().optional().default(""),
 });
 
 function validateEnv() {
