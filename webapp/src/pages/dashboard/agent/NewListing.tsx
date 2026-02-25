@@ -39,6 +39,14 @@ import { api } from '@/lib/api';
 import type { Listing } from '@/lib/types';
 import { cn } from '@/lib/utils';
 
+// ─── Helpers ────────────────────────────────────────────────────────────────────
+
+function formatKES(value: number | string): string {
+  const num = typeof value === 'string' ? parseFloat(value.replace(/,/g, '')) : value;
+  if (isNaN(num) || value === '' || value === 0) return '';
+  return num.toLocaleString('en-KE');
+}
+
 // ─── Zod Schema ────────────────────────────────────────────────────────────────
 
 const listingSchema = z.object({
@@ -244,11 +252,13 @@ function SlugPreviewCard({
 
 function CommissionPreview({
   price,
+  totalPct,
   agentPct,
   promoterPct,
   companyPct,
 }: {
   price: number;
+  totalPct: number;
   agentPct: number;
   promoterPct: number;
   companyPct: number;
@@ -258,45 +268,46 @@ function CommissionPreview({
   if (!price || price <= 0) {
     return (
       <p className="text-xs text-muted-foreground text-center py-3">
-        Enter a price to see commission preview
+        Enter a price to see the commission breakdown
       </p>
     );
   }
 
+  const totalAmt = (price * totalPct) / 100;
   const agentAmt = (price * agentPct) / 100;
   const promoterAmt = (price * promoterPct) / 100;
   const companyAmt = (price * companyPct) / 100;
-  const totalPct = agentPct + promoterPct + companyPct;
-  const totalAmt = agentAmt + promoterAmt + companyAmt;
 
   return (
-    <div className="bg-muted/50 rounded-lg p-3 space-y-1.5 text-xs">
-      <p className="text-muted-foreground mb-2">
-        On a{' '}
-        <span className="font-semibold text-foreground">{fmt(price)}</span> listing:
+    <div className="bg-muted/50 rounded-lg p-3 space-y-1.5 text-xs font-mono">
+      <p className="text-muted-foreground font-sans font-medium mb-2">
+        Commission breakdown on a{' '}
+        <span className="font-semibold text-foreground">KES {formatKES(price)}</span> listing:
       </p>
-      <div className="flex justify-between">
-        <span className="text-muted-foreground">Agent earns</span>
+      <div className="border-b border-border pb-1.5 mb-1.5">
+        <div className="flex justify-between">
+          <span className="text-muted-foreground">Total payable by landlord</span>
+          <span className="font-semibold text-foreground">
+            {fmt(totalAmt)} ({totalPct}%)
+          </span>
+        </div>
+      </div>
+      <div className="flex justify-between pl-3">
+        <span className="text-muted-foreground">└─ Agent earns</span>
         <span className="font-semibold text-foreground">
           {fmt(agentAmt)} ({agentPct}%)
         </span>
       </div>
-      <div className="flex justify-between">
-        <span className="text-muted-foreground">Promoter earns</span>
-        <span className="font-semibold text-foreground">
-          {fmt(promoterAmt)} ({promoterPct}%)
-        </span>
-      </div>
-      <div className="flex justify-between">
-        <span className="text-muted-foreground">Company earns</span>
+      <div className="flex justify-between pl-3">
+        <span className="text-muted-foreground">└─ Company earns</span>
         <span className="font-semibold text-foreground">
           {fmt(companyAmt)} ({companyPct}%)
         </span>
       </div>
-      <div className="border-t border-border pt-1.5 flex justify-between font-semibold">
-        <span>Total commission</span>
-        <span>
-          {fmt(totalAmt)} ({totalPct}%)
+      <div className="flex justify-between pl-3">
+        <span className="text-muted-foreground">└─ Promoter earns</span>
+        <span className="font-semibold text-foreground">
+          {fmt(promoterAmt)} ({promoterPct}%)
         </span>
       </div>
     </div>
@@ -370,6 +381,9 @@ export default function NewListing() {
   const [createdSlug, setCreatedSlug] = useState('');
   const [showSuccess, setShowSuccess] = useState(false);
 
+  // Local state for totalCommissionPct (UI only, not sent to API)
+  const [totalCommissionPct, setTotalCommissionPct] = useState<string>('');
+
   const {
     register,
     handleSubmit,
@@ -395,9 +409,9 @@ export default function NewListing() {
       description: '',
       amenities: [],
       status: 'ACTIVE',
-      agentCommissionPct: 5,
-      promoterCommissionPct: 2,
-      companyCommissionPct: 3,
+      agentCommissionPct: 0,
+      promoterCommissionPct: 0,
+      companyCommissionPct: 0,
     },
   });
 
@@ -416,6 +430,11 @@ export default function NewListing() {
   const watchedCompanyPct = watch('companyCommissionPct');
   const watchedAmenities = watch('amenities');
   const watchedDescription = watch('description');
+
+  // Commission share validation
+  const totalNum = parseFloat(totalCommissionPct) || 0;
+  const sharesSum = (watchedAgentPct || 0) + (watchedCompanyPct || 0) + (watchedPromoterPct || 0);
+  const sharesBalanced = totalNum > 0 && Math.abs(sharesSum - totalNum) < 0.001;
 
   const [isGenerating, setIsGenerating] = useState(false);
 
@@ -457,6 +476,7 @@ export default function NewListing() {
 
   const handleCreateAnother = () => {
     reset();
+    setTotalCommissionPct('');
     setShowSuccess(false);
     setCreatedSlug('');
   };
@@ -637,25 +657,33 @@ export default function NewListing() {
                   {/* Price */}
                   <div className="space-y-1.5">
                     <Label htmlFor="price" className="text-sm font-medium">
-                      Price (KES) <span className="text-destructive">*</span>
+                      Price <span className="text-destructive">*</span>
                     </Label>
                     <Controller
                       control={control}
                       name="price"
                       render={({ field }) => (
                         <>
-                          <Input
-                            id="price"
-                            type="number"
-                            min={0}
-                            placeholder="e.g. 45000"
-                            className="h-10"
-                            value={field.value || ''}
-                            onChange={(e) => field.onChange(Number(e.target.value))}
-                          />
+                          <div className="relative">
+                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-semibold text-muted-foreground select-none">
+                              KES
+                            </span>
+                            <Input
+                              id="price"
+                              inputMode="numeric"
+                              placeholder="e.g. 5,000,000"
+                              className="h-10 pl-11"
+                              value={field.value > 0 ? formatKES(field.value) : ''}
+                              onChange={(e) => {
+                                const raw = e.target.value.replace(/,/g, '');
+                                const num = parseFloat(raw);
+                                field.onChange(isNaN(num) ? 0 : num);
+                              }}
+                            />
+                          </div>
                           {field.value > 0 && (
                             <p className="text-xs text-muted-foreground">
-                              KES {field.value.toLocaleString('en-KE')}
+                              KES {formatKES(field.value)}
                             </p>
                           )}
                         </>
@@ -708,14 +736,15 @@ export default function NewListing() {
                         name="areaSqft"
                         render={({ field }) => (
                           <Input
-                            type="number"
-                            min={0}
-                            placeholder="e.g. 1200"
+                            inputMode="numeric"
+                            placeholder="e.g. 1,200"
                             className="h-10 flex-1"
-                            value={field.value ?? ''}
-                            onChange={(e) =>
-                              field.onChange(e.target.value ? Number(e.target.value) : undefined)
-                            }
+                            value={field.value != null && field.value > 0 ? formatKES(field.value) : ''}
+                            onChange={(e) => {
+                              const raw = e.target.value.replace(/,/g, '');
+                              const num = parseFloat(raw);
+                              field.onChange(isNaN(num) ? undefined : num);
+                            }}
                           />
                         )}
                       />
@@ -834,40 +863,82 @@ export default function NewListing() {
               {/* Section 6: Commission Structure */}
               <SectionCard title="Commission Structure">
                 <div className="space-y-4">
-                  <div className="grid grid-cols-3 gap-3">
-                    {(
-                      [
-                        { name: 'agentCommissionPct', label: 'Agent %' },
-                        { name: 'promoterCommissionPct', label: 'Promoter %' },
-                        { name: 'companyCommissionPct', label: 'Company %' },
-                      ] as const
-                    ).map(({ name, label }) => (
-                      <div key={name} className="space-y-1.5">
-                        <Label htmlFor={name} className="text-xs font-medium">
-                          {label}
-                        </Label>
-                        <Controller
-                          control={control}
-                          name={name}
-                          render={({ field }) => (
-                            <Input
-                              id={name}
-                              type="number"
-                              min={0}
-                              max={100}
-                              step={0.5}
-                              className="h-9 text-sm"
-                              value={field.value}
-                              onChange={(e) => field.onChange(Number(e.target.value))}
-                            />
-                          )}
-                        />
-                      </div>
-                    ))}
+                  {/* Total commission */}
+                  <div className="space-y-1.5">
+                    <Label htmlFor="totalCommissionPct" className="text-xs font-medium">
+                      Total Commission from Landlord/Developer (%)
+                    </Label>
+                    <Input
+                      id="totalCommissionPct"
+                      type="number"
+                      min={0}
+                      max={100}
+                      step={0.01}
+                      placeholder="e.g. 3"
+                      className="h-9 text-sm"
+                      value={totalCommissionPct}
+                      onChange={(e) => setTotalCommissionPct(e.target.value)}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      The agreed commission percentage payable by the landlord or developer
+                    </p>
+                  </div>
+
+                  {/* Share splits */}
+                  <div className="space-y-2">
+                    <p className="text-xs font-medium text-muted-foreground">Split among:</p>
+                    <div className="grid grid-cols-3 gap-3">
+                      {(
+                        [
+                          { name: 'agentCommissionPct', label: 'Agent Share (%)' },
+                          { name: 'companyCommissionPct', label: 'Company Share (%)' },
+                          { name: 'promoterCommissionPct', label: 'Promoter Share (%)' },
+                        ] as const
+                      ).map(({ name, label }) => (
+                        <div key={name} className="space-y-1.5">
+                          <Label htmlFor={name} className="text-xs font-medium">
+                            {label}
+                          </Label>
+                          <Controller
+                            control={control}
+                            name={name}
+                            render={({ field }) => (
+                              <Input
+                                id={name}
+                                type="number"
+                                min={0}
+                                max={100}
+                                step={0.01}
+                                placeholder="0.00"
+                                className="h-9 text-sm"
+                                value={field.value === 0 ? '' : field.value}
+                                onChange={(e) =>
+                                  field.onChange(e.target.value === '' ? 0 : Number(e.target.value))
+                                }
+                              />
+                            )}
+                          />
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Balance validation */}
+                    {totalNum > 0 && (
+                      sharesBalanced ? (
+                        <p className="text-xs text-emerald-600 font-medium">
+                          Shares balance correctly
+                        </p>
+                      ) : (
+                        <p className="text-xs text-amber-600 font-medium">
+                          Shares must add up to {totalNum}% (currently {Math.round(sharesSum * 100) / 100}%)
+                        </p>
+                      )
+                    )}
                   </div>
 
                   <CommissionPreview
                     price={watchedPrice}
+                    totalPct={totalNum}
                     agentPct={watchedAgentPct}
                     promoterPct={watchedPromoterPct}
                     companyPct={watchedCompanyPct}
@@ -944,7 +1015,7 @@ export default function NewListing() {
                   )}
                   {watchedPrice > 0 && (
                     <p className="font-bold text-foreground text-base">
-                      KES {watchedPrice.toLocaleString('en-KE')}
+                      KES {formatKES(watchedPrice)}
                       {watchedListingType === 'RENTAL' ? '/mo' : ''}
                     </p>
                   )}
@@ -965,7 +1036,7 @@ export default function NewListing() {
                       {watchedAreaSqft && (
                         <span className="flex items-center gap-1">
                           <Square className="w-3 h-3" />
-                          {watchedAreaSqft.toLocaleString('en-KE')} {watchedAreaUnit}
+                          {formatKES(watchedAreaSqft)} {watchedAreaUnit}
                         </span>
                       )}
                     </div>

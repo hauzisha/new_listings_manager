@@ -21,7 +21,7 @@ export function NumberStepper({
   icon,
   className,
 }: NumberStepperProps) {
-  const canDecrement = min === undefined || value > min;
+  const canDecrement = value > (min ?? 0);
   const canIncrement = max === undefined || value < max;
 
   return (
@@ -41,7 +41,9 @@ export function NumberStepper({
         >
           <Minus className="h-3.5 w-3.5" />
         </Button>
-        <span className="w-8 text-center text-base font-semibold tabular-nums">{value}</span>
+        <span className="w-8 text-center text-base font-semibold tabular-nums">
+          {value === 0 ? '—' : value}
+        </span>
         <Button
           type="button"
           variant="outline"
