@@ -119,6 +119,8 @@ Located in `webapp/`. React + Vite + TailwindCSS + shadcn/ui.
 
 | Path | Component | Notes |
 |---|---|---|
+| `/` | Redirect | Redirects to `/listings` |
+| `/listings` | Marketplace Listings | Public property marketplace — no auth required |
 | `/login` | Login | Email + password. Role-based redirect after sign-in |
 | `/signup/agent` | AgentSignup | Pending approval flow |
 | `/signup/promoter` | PromoterSignup | Supports `?via=` referral code |
@@ -157,6 +159,12 @@ webapp/src/
     types.ts          — Shared TypeScript interfaces (includes videos: string[])
     upload.ts         — File upload utility with client-side image compression
   components/
+    marketplace/
+      MarketplaceNav.tsx  — Public sticky navbar (logo, Sign In, Get Started / Dashboard)
+      ListingCard.tsx     — Property card with image, badges, specs, price, commission pill, action buttons
+      FilterBar.tsx       — Sticky filter row synced to URL params (type, location, price, sort)
+      ResultsHeader.tsx   — "Showing X–Y of Z properties" summary
+      Pagination.tsx      — Numbered pagination with ellipsis
     listings/
       MediaUpload.tsx  — Drag-and-drop image/video uploader with thumbnails
       NumberStepper.tsx — Stepper for bedrooms/bathrooms (shows — at 0)

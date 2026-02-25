@@ -7,6 +7,9 @@ import AgentSignup from "./pages/auth/AgentSignup";
 import PromoterSignup from "./pages/auth/PromoterSignup";
 import NotFound from "./pages/NotFound";
 
+// Public marketplace
+import MarketplaceListings from "./pages/marketplace/Listings";
+
 // Admin pages
 import AdminOverview from "./pages/dashboard/admin/Overview";
 import AdminUsers from "./pages/dashboard/admin/Users";
@@ -42,7 +45,8 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <Routes>
-          <Route path="/" element={<Navigate to="/login" replace />} />
+          <Route path="/" element={<Navigate to="/listings" replace />} />
+          <Route path="/listings" element={<MarketplaceListings />} />
           <Route path="/login" element={<Login />} />
           <Route path="/signup/agent" element={<AgentSignup />} />
           <Route path="/signup/promoter" element={<PromoterSignup />} />

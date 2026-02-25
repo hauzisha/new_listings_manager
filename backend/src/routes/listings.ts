@@ -111,6 +111,75 @@ listingsRouter.get("/listings/slug-preview", async (c) => {
   return c.json({ data: { slug, listingNumber } });
 });
 
+// GET /api/listings/public  (no auth required)
+listingsRouter.get("/listings/public", async (c) => {
+  const typeParam = c.req.query("type") ?? "";
+  const location = c.req.query("location") ?? "";
+  const propertyType = c.req.query("propertyType") ?? "";
+  const minPrice = c.req.query("minPrice") ?? "";
+  const maxPrice = c.req.query("maxPrice") ?? "";
+  const sort = c.req.query("sort") ?? "newest";
+  const pageParam = c.req.query("page") ?? "1";
+  const limitParam = c.req.query("limit") ?? "12";
+
+  const page = Math.max(1, parseInt(pageParam, 10) || 1);
+  const limit = Math.min(100, Math.max(1, parseInt(limitParam, 10) || 12));
+  const skip = (page - 1) * limit;
+
+  // Build where clause dynamically
+  const where: Record<string, unknown> = { status: "ACTIVE" };
+
+  if (typeParam === "RENTAL" || typeParam === "SALE") {
+    where.listingType = typeParam.toUpperCase();
+  }
+
+  if (location) {
+    where.location = { contains: location, mode: "insensitive" };
+  }
+
+  if (propertyType) {
+    where.propertyType = propertyType;
+  }
+
+  if (minPrice || maxPrice) {
+    const priceFilter: Record<string, number> = {};
+    if (minPrice) priceFilter.gte = parseFloat(minPrice);
+    if (maxPrice) priceFilter.lte = parseFloat(maxPrice);
+    where.price = priceFilter;
+  }
+
+  // Build orderBy
+  let orderBy: Record<string, string>;
+  if (sort === "price_asc") {
+    orderBy = { price: "asc" };
+  } else if (sort === "price_desc") {
+    orderBy = { price: "desc" };
+  } else {
+    orderBy = { createdAt: "desc" };
+  }
+
+  const [listings, total] = await Promise.all([
+    prisma.listing.findMany({
+      where,
+      orderBy,
+      skip,
+      take: limit,
+    }),
+    prisma.listing.count({ where }),
+  ]);
+
+  const totalPages = Math.ceil(total / limit);
+
+  return c.json({
+    data: {
+      listings: listings.map((l) => parseListing(l as unknown as Record<string, unknown>)),
+      total,
+      page,
+      totalPages,
+    },
+  });
+});
+
 // GET /api/listings/agent
 listingsRouter.get("/listings/agent", async (c) => {
   const sessionUser = c.get("user");
