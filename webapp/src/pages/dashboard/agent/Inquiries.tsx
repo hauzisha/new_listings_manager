@@ -9,6 +9,12 @@ import {
   Mail,
   CheckCheck,
   ChevronRight,
+  Users,
+  Megaphone,
+  Clock,
+  CheckCircle2,
+  XCircle,
+  AlertCircle,
 } from 'lucide-react';
 import { formatDistanceToNow, format } from 'date-fns';
 import { toast } from 'sonner';
@@ -22,6 +28,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog';
 import { api } from '@/lib/api';
 import { cn } from '@/lib/utils';
 
@@ -49,10 +62,11 @@ interface Inquiry {
   id: string;
   clientName: string;
   clientPhone: string;
-  clientEmail: string;
-  message: string;
+  clientEmail: string | null;
+  message: string | null;
   stage: InquiryStage;
   isStale: boolean;
+  firstResponseAt: string | null;
   createdAt: string;
   updatedAt: string;
   listing: {
@@ -61,51 +75,52 @@ interface Inquiry {
     listingNumber: number;
   };
   stageHistory: StageHistoryEntry[];
+  promoterName: string | null;
+  platform: string | null;
 }
 
-type FilterTab = 'all' | 'open' | 'scheduled' | 'closed' | 'stale';
+type StageFilter = InquiryStage | 'ALL' | 'STALE';
 
 // ─── Stage config ─────────────────────────────────────────────────────────────
 
-const STAGE_CONFIG: Record<InquiryStage, { label: string; className: string; dot: string }> = {
-  INQUIRY: { label: 'Inquiry', className: 'bg-blue-100 text-blue-700 border-blue-200', dot: 'bg-blue-500' },
-  WAITING_RESPONSE: { label: 'Waiting Response', className: 'bg-amber-100 text-amber-700 border-amber-200', dot: 'bg-amber-500' },
-  SCHEDULED: { label: 'Scheduled', className: 'bg-purple-100 text-purple-700 border-purple-200', dot: 'bg-purple-500' },
-  VIEWED: { label: 'Viewed', className: 'bg-teal-100 text-teal-700 border-teal-200', dot: 'bg-teal-500' },
-  RENTED: { label: 'Rented', className: 'bg-emerald-100 text-emerald-700 border-emerald-200', dot: 'bg-emerald-500' },
-  PURCHASED: { label: 'Purchased', className: 'bg-emerald-100 text-emerald-700 border-emerald-200', dot: 'bg-emerald-500' },
-  NO_SHOW: { label: 'No Show', className: 'bg-red-100 text-red-700 border-red-200', dot: 'bg-red-500' },
-  CANCELLED: { label: 'Cancelled', className: 'bg-gray-100 text-gray-600 border-gray-200', dot: 'bg-gray-400' },
+const STAGE_CONFIG: Record<InquiryStage, { label: string; className: string; dot: string; short: string }> = {
+  INQUIRY:          { label: 'Inquiry',          short: 'Inquiry',    className: 'bg-blue-100 text-blue-700 border-blue-200',       dot: 'bg-blue-500'     },
+  WAITING_RESPONSE: { label: 'Waiting Response', short: 'Waiting',    className: 'bg-amber-100 text-amber-700 border-amber-200',     dot: 'bg-amber-500'    },
+  SCHEDULED:        { label: 'Scheduled',         short: 'Scheduled',  className: 'bg-violet-100 text-violet-700 border-violet-200',  dot: 'bg-violet-500'   },
+  VIEWED:           { label: 'Viewed',            short: 'Viewed',     className: 'bg-teal-100 text-teal-700 border-teal-200',        dot: 'bg-teal-500'     },
+  RENTED:           { label: 'Rented',            short: 'Rented',     className: 'bg-emerald-100 text-emerald-700 border-emerald-200', dot: 'bg-emerald-500' },
+  PURCHASED:        { label: 'Purchased',         short: 'Purchased',  className: 'bg-emerald-100 text-emerald-700 border-emerald-200', dot: 'bg-emerald-500' },
+  NO_SHOW:          { label: 'No Show',           short: 'No Show',    className: 'bg-red-100 text-red-700 border-red-200',           dot: 'bg-red-500'      },
+  CANCELLED:        { label: 'Cancelled',         short: 'Cancelled',  className: 'bg-gray-100 text-gray-600 border-gray-200',        dot: 'bg-gray-400'     },
 };
 
 const STAGE_PIPELINE: InquiryStage[] = [
-  'INQUIRY',
-  'WAITING_RESPONSE',
-  'SCHEDULED',
-  'VIEWED',
-  'RENTED',
+  'INQUIRY', 'WAITING_RESPONSE', 'SCHEDULED', 'VIEWED', 'RENTED',
 ];
 
 const ALL_STAGES: InquiryStage[] = [
-  'INQUIRY',
-  'WAITING_RESPONSE',
-  'SCHEDULED',
-  'VIEWED',
-  'RENTED',
-  'PURCHASED',
-  'NO_SHOW',
-  'CANCELLED',
+  'INQUIRY', 'WAITING_RESPONSE', 'SCHEDULED', 'VIEWED',
+  'RENTED', 'PURCHASED', 'NO_SHOW', 'CANCELLED',
 ];
 
-function isOpenStage(stage: InquiryStage): boolean {
-  return stage === 'INQUIRY' || stage === 'WAITING_RESPONSE';
-}
-function isScheduledStage(stage: InquiryStage): boolean {
-  return stage === 'SCHEDULED' || stage === 'VIEWED';
-}
-function isClosedStage(stage: InquiryStage): boolean {
-  return stage === 'RENTED' || stage === 'PURCHASED' || stage === 'NO_SHOW' || stage === 'CANCELLED';
-}
+const TERMINAL_STAGES: InquiryStage[] = ['RENTED', 'PURCHASED', 'NO_SHOW', 'CANCELLED'];
+
+// Platform display names
+const PLATFORM_LABELS: Record<string, string> = {
+  WHATSAPP: 'WhatsApp',
+  FACEBOOK: 'Facebook',
+  INSTAGRAM: 'Instagram',
+  TWITTER_X: 'X / Twitter',
+  TIKTOK: 'TikTok',
+  LINKEDIN: 'LinkedIn',
+  EMAIL: 'Email',
+  SMS: 'SMS',
+  WEBSITE: 'Website',
+  OTHER: 'Other',
+};
+
+// Stages that need a confirmation dialog before setting
+const CONFIRM_STAGES: InquiryStage[] = ['RENTED', 'PURCHASED', 'CANCELLED'];
 
 // ─── Stage Badge ──────────────────────────────────────────────────────────────
 
@@ -115,6 +130,17 @@ function StageBadge({ stage }: { stage: InquiryStage }) {
     <span className={cn('inline-flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-full border', cfg.className)}>
       <span className={cn('w-1.5 h-1.5 rounded-full flex-shrink-0', cfg.dot)} />
       {cfg.label}
+    </span>
+  );
+}
+
+// ─── Platform Badge ───────────────────────────────────────────────────────────
+
+function PlatformBadge({ platform }: { platform: string }) {
+  return (
+    <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-secondary text-secondary-foreground border border-border">
+      <Megaphone className="w-2.5 h-2.5" />
+      {PLATFORM_LABELS[platform] ?? platform}
     </span>
   );
 }
@@ -136,7 +162,7 @@ function StagePipeline({ currentStage }: { currentStage: InquiryStage }) {
               isCurrent ? cfg.className : isPast ? 'bg-emerald-50 text-emerald-600 border-emerald-200' : 'bg-muted/40 text-muted-foreground border-transparent'
             )}>
               {isPast ? <CheckCheck className="w-3 h-3" /> : null}
-              {cfg.label}
+              {cfg.short}
             </div>
             {i < STAGE_PIPELINE.length - 1 && (
               <ChevronRight className="w-3 h-3 text-muted-foreground/40 flex-shrink-0 mx-0.5" />
@@ -192,19 +218,101 @@ function StageTimeline({ history }: { history: StageHistoryEntry[] }) {
   );
 }
 
+// ─── Confirm Stage Dialog ─────────────────────────────────────────────────────
+
+interface ConfirmStageDialogProps {
+  stage: InquiryStage;
+  clientName: string;
+  note: string;
+  setNote: (v: string) => void;
+  onConfirm: () => void;
+  onCancel: () => void;
+  isPending: boolean;
+}
+
+function ConfirmStageDialog({
+  stage,
+  clientName,
+  note,
+  setNote,
+  onConfirm,
+  onCancel,
+  isPending,
+}: ConfirmStageDialogProps) {
+  const isPositive = stage === 'RENTED' || stage === 'PURCHASED';
+  const icon = isPositive ? (
+    <CheckCircle2 className="w-10 h-10 text-emerald-500" />
+  ) : (
+    <XCircle className="w-10 h-10 text-red-500" />
+  );
+
+  const title =
+    stage === 'RENTED' ? 'Confirm Rental' :
+    stage === 'PURCHASED' ? 'Confirm Purchase' :
+    'Cancel Inquiry';
+
+  const message =
+    stage === 'RENTED'
+      ? `Mark this as rented to ${clientName}? This will automatically record commissions for all parties.`
+      : stage === 'PURCHASED'
+      ? `Mark this as purchased by ${clientName}? This will automatically record commissions for all parties.`
+      : `Cancel this inquiry from ${clientName}? This action records a lost deal.`;
+
+  return (
+    <Dialog open onOpenChange={(open) => { if (!open) onCancel(); }}>
+      <DialogContent className="max-w-sm">
+        <DialogHeader>
+          <div className="flex flex-col items-center gap-3 pb-2">
+            {icon}
+            <DialogTitle className="text-center">{title}</DialogTitle>
+          </div>
+        </DialogHeader>
+        <p className="text-sm text-muted-foreground text-center">{message}</p>
+        <div className="space-y-1.5">
+          <label className="text-xs font-semibold text-muted-foreground">Note (optional)</label>
+          <input
+            type="text"
+            placeholder="Add a note..."
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+            className="w-full h-9 text-sm bg-background border border-input rounded-md px-3 outline-none focus:ring-2 focus:ring-ring transition-all"
+          />
+        </div>
+        <DialogFooter className="gap-2">
+          <Button variant="outline" size="sm" onClick={onCancel} disabled={isPending}>
+            Go back
+          </Button>
+          <Button
+            size="sm"
+            variant={isPositive ? 'default' : 'destructive'}
+            onClick={onConfirm}
+            disabled={isPending}
+            className="flex-1"
+          >
+            {isPending ? 'Saving...' : isPositive ? 'Confirm' : 'Cancel inquiry'}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 // ─── Stage Update Control ─────────────────────────────────────────────────────
 
 function StageUpdateControl({
   inquiryId,
   currentStage,
+  clientName,
   onUpdated,
 }: {
   inquiryId: string;
   currentStage: InquiryStage;
+  clientName: string;
   onUpdated: () => void;
 }) {
   const [selectedStage, setSelectedStage] = useState<InquiryStage>(currentStage);
   const [note, setNote] = useState('');
+  const [confirmStage, setConfirmStage] = useState<InquiryStage | null>(null);
 
   const mutation = useMutation({
     mutationFn: ({ stage, note }: { stage: InquiryStage; note?: string }) =>
@@ -212,51 +320,79 @@ function StageUpdateControl({
     onSuccess: () => {
       toast.success('Stage updated');
       setNote('');
+      setConfirmStage(null);
       onUpdated();
     },
     onError: () => {
       toast.error('Failed to update stage');
+      setConfirmStage(null);
     },
   });
 
   const isDirty = selectedStage !== currentStage;
 
+  function handleUpdate() {
+    if (CONFIRM_STAGES.includes(selectedStage)) {
+      setConfirmStage(selectedStage);
+    } else {
+      mutation.mutate({ stage: selectedStage, note });
+    }
+  }
+
   return (
-    <div className="space-y-3 p-4 bg-muted/30 rounded-xl border border-border">
-      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Update Stage</p>
-      <div className="flex flex-col sm:flex-row gap-2">
-        <Select value={selectedStage} onValueChange={(v) => setSelectedStage(v as InquiryStage)}>
-          <SelectTrigger className="h-9 text-sm flex-1">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {ALL_STAGES.map((stage) => (
-              <SelectItem key={stage} value={stage}>
-                <span className="flex items-center gap-2">
-                  <span className={cn('w-2 h-2 rounded-full', STAGE_CONFIG[stage].dot)} />
-                  {STAGE_CONFIG[stage].label}
-                </span>
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <input
-          type="text"
-          placeholder="Add a note (optional)"
-          value={note}
-          onChange={(e) => setNote(e.target.value)}
-          className="h-9 flex-1 text-sm bg-background border border-input rounded-md px-3 outline-none focus:ring-2 focus:ring-ring transition-all"
+    <>
+      {confirmStage && (
+        <ConfirmStageDialog
+          stage={confirmStage}
+          clientName={clientName}
+          note={note}
+          setNote={setNote}
+          onConfirm={() => mutation.mutate({ stage: confirmStage, note })}
+          onCancel={() => setConfirmStage(null)}
+          isPending={mutation.isPending}
         />
-        <Button
-          size="sm"
-          className="h-9 px-4"
-          disabled={!isDirty || mutation.isPending}
-          onClick={() => mutation.mutate({ stage: selectedStage, note })}
-        >
-          {mutation.isPending ? 'Saving...' : 'Update'}
-        </Button>
+      )}
+      <div className="space-y-3 p-4 bg-muted/30 rounded-xl border border-border">
+        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Update Stage</p>
+        <div className="flex flex-col sm:flex-row gap-2">
+          <Select value={selectedStage} onValueChange={(v) => setSelectedStage(v as InquiryStage)}>
+            <SelectTrigger className="h-9 text-sm flex-1">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {ALL_STAGES.map((stage) => (
+                <SelectItem key={stage} value={stage}>
+                  <span className="flex items-center gap-2">
+                    <span className={cn('w-2 h-2 rounded-full', STAGE_CONFIG[stage].dot)} />
+                    {STAGE_CONFIG[stage].label}
+                  </span>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {!CONFIRM_STAGES.includes(selectedStage) && (
+            <input
+              type="text"
+              placeholder="Add a note (optional)"
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+              className="h-9 flex-1 text-sm bg-background border border-input rounded-md px-3 outline-none focus:ring-2 focus:ring-ring transition-all"
+            />
+          )}
+          <Button
+            size="sm"
+            className="h-9 px-4"
+            disabled={!isDirty || mutation.isPending}
+            onClick={handleUpdate}
+            variant={isDirty && TERMINAL_STAGES.includes(selectedStage) ? (
+              selectedStage === 'RENTED' || selectedStage === 'PURCHASED' ? 'default' : 'destructive'
+            ) : 'default'}
+          >
+            {mutation.isPending ? 'Saving...' : 'Update'}
+          </Button>
+        </div>
       </div>
-    </div>
+    </>
   );
 }
 
@@ -264,6 +400,7 @@ function StageUpdateControl({
 
 function InquiryRow({ inquiry, onUpdated }: { inquiry: Inquiry; onUpdated: () => void }) {
   const [expanded, setExpanded] = useState(false);
+  const isInPipeline = STAGE_PIPELINE.includes(inquiry.stage);
 
   return (
     <div className={cn(
@@ -293,12 +430,21 @@ function InquiryRow({ inquiry, onUpdated }: { inquiry: Inquiry; onUpdated: () =>
                 Stale
               </span>
             )}
+            {inquiry.platform && <PlatformBadge platform={inquiry.platform} />}
           </div>
-          <p className="text-xs text-muted-foreground truncate mt-0.5">
-            <span className="font-mono text-[10px]">#{String(inquiry.listing.listingNumber).padStart(6, '0')}</span>
-            {' · '}
-            {inquiry.listing.title}
-          </p>
+          <div className="flex items-center gap-1.5 flex-wrap mt-0.5">
+            <span className="text-xs text-muted-foreground truncate">
+              <span className="font-mono text-[10px]">#{String(inquiry.listing.listingNumber).padStart(6, '0')}</span>
+              {' · '}
+              {inquiry.listing.title}
+            </span>
+            {inquiry.promoterName && (
+              <span className="flex items-center gap-1 text-[10px] text-muted-foreground whitespace-nowrap">
+                <Users className="w-2.5 h-2.5 flex-shrink-0" />
+                via {inquiry.promoterName}
+              </span>
+            )}
+          </div>
         </div>
 
         {/* Stage + time */}
@@ -318,7 +464,7 @@ function InquiryRow({ inquiry, onUpdated }: { inquiry: Inquiry; onUpdated: () =>
       </button>
 
       {/* Mobile stage */}
-      <div className="sm:hidden px-4 pb-3 flex items-center gap-2">
+      <div className="sm:hidden px-4 pb-3 flex items-center gap-2 flex-wrap">
         <StageBadge stage={inquiry.stage} />
         <span className="text-[10px] text-muted-foreground">
           {formatDistanceToNow(new Date(inquiry.createdAt), { addSuffix: true })}
@@ -328,8 +474,26 @@ function InquiryRow({ inquiry, onUpdated }: { inquiry: Inquiry; onUpdated: () =>
       {/* Expanded detail */}
       {expanded && (
         <div className="border-t border-border px-4 py-4 space-y-4">
-          {/* Pipeline */}
-          <StagePipeline currentStage={inquiry.stage} />
+          {/* Pipeline — only shown for pipeline stages */}
+          {isInPipeline && <StagePipeline currentStage={inquiry.stage} />}
+
+          {/* Promoter + first response meta */}
+          {(inquiry.promoterName || inquiry.firstResponseAt) && (
+            <div className="flex flex-wrap gap-3">
+              {inquiry.promoterName && (
+                <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                  <Users className="w-3.5 h-3.5 text-muted-foreground/60" />
+                  <span>Referred by <span className="font-semibold text-foreground">{inquiry.promoterName}</span></span>
+                </div>
+              )}
+              {inquiry.firstResponseAt && (
+                <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                  <Clock className="w-3.5 h-3.5 text-muted-foreground/60" />
+                  <span>First response <span className="font-semibold text-foreground">{formatDistanceToNow(new Date(inquiry.firstResponseAt), { addSuffix: true })}</span></span>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Contact info */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -339,12 +503,14 @@ function InquiryRow({ inquiry, onUpdated }: { inquiry: Inquiry; onUpdated: () =>
                 {inquiry.clientPhone}
               </a>
             </div>
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Mail className="w-3.5 h-3.5 flex-shrink-0 text-muted-foreground/70" />
-              <a href={`mailto:${inquiry.clientEmail}`} className="hover:text-primary transition-colors truncate">
-                {inquiry.clientEmail}
-              </a>
-            </div>
+            {inquiry.clientEmail && (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Mail className="w-3.5 h-3.5 flex-shrink-0 text-muted-foreground/70" />
+                <a href={`mailto:${inquiry.clientEmail}`} className="hover:text-primary transition-colors truncate">
+                  {inquiry.clientEmail}
+                </a>
+              </div>
+            )}
           </div>
 
           {/* Message */}
@@ -362,6 +528,7 @@ function InquiryRow({ inquiry, onUpdated }: { inquiry: Inquiry; onUpdated: () =>
           <StageUpdateControl
             inquiryId={inquiry.id}
             currentStage={inquiry.stage}
+            clientName={inquiry.clientName}
             onUpdated={onUpdated}
           />
         </div>
@@ -370,14 +537,25 @@ function InquiryRow({ inquiry, onUpdated }: { inquiry: Inquiry; onUpdated: () =>
   );
 }
 
-// ─── Filter Tabs ──────────────────────────────────────────────────────────────
+// ─── Stage Filter Tabs ────────────────────────────────────────────────────────
 
-const FILTER_TABS: { label: string; value: FilterTab }[] = [
-  { label: 'All', value: 'all' },
-  { label: 'Open', value: 'open' },
-  { label: 'Scheduled', value: 'scheduled' },
-  { label: 'Closed', value: 'closed' },
-  { label: 'Stale', value: 'stale' },
+interface FilterTabDef {
+  label: string;
+  value: StageFilter;
+  dot?: string;
+}
+
+const FILTER_TABS: FilterTabDef[] = [
+  { label: 'All', value: 'ALL' },
+  { label: 'Inquiry', value: 'INQUIRY', dot: 'bg-blue-500' },
+  { label: 'Waiting', value: 'WAITING_RESPONSE', dot: 'bg-amber-500' },
+  { label: 'Scheduled', value: 'SCHEDULED', dot: 'bg-violet-500' },
+  { label: 'Viewed', value: 'VIEWED', dot: 'bg-teal-500' },
+  { label: 'Rented', value: 'RENTED', dot: 'bg-emerald-500' },
+  { label: 'Purchased', value: 'PURCHASED', dot: 'bg-emerald-500' },
+  { label: 'No Show', value: 'NO_SHOW', dot: 'bg-red-500' },
+  { label: 'Cancelled', value: 'CANCELLED', dot: 'bg-gray-400' },
+  { label: 'Stale', value: 'STALE' },
 ];
 
 // ─── Loading Skeleton ─────────────────────────────────────────────────────────
@@ -385,20 +563,15 @@ const FILTER_TABS: { label: string; value: FilterTab }[] = [
 function InquiriesSkeleton() {
   return (
     <div className="p-5 md:p-6 space-y-5">
-      <div className="flex gap-2">
-        {Array.from({ length: 3 }).map((_, i) => (
-          <Skeleton key={i} className="h-8 w-20 rounded-xl" />
-        ))}
-      </div>
-      <div className="flex gap-2">
+      <div className="flex gap-2 overflow-x-auto pb-1">
         {Array.from({ length: 5 }).map((_, i) => (
-          <Skeleton key={i} className="h-8 w-16 rounded-lg" />
+          <Skeleton key={i} className="h-8 w-20 rounded-xl flex-shrink-0" />
         ))}
       </div>
       <div className="space-y-3">
         {Array.from({ length: 4 }).map((_, i) => (
           <div key={i} className="bg-card border border-border rounded-xl p-4 flex items-center gap-3">
-            <Skeleton className="w-9 h-9 rounded-full" />
+            <Skeleton className="w-9 h-9 rounded-full flex-shrink-0" />
             <div className="flex-1 space-y-1">
               <Skeleton className="h-4 w-32" />
               <Skeleton className="h-3 w-48" />
@@ -415,7 +588,7 @@ function InquiriesSkeleton() {
 
 export default function AgentInquiries() {
   const queryClient = useQueryClient();
-  const [activeTab, setActiveTab] = useState<FilterTab>('all');
+  const [activeFilter, setActiveFilter] = useState<StageFilter>('ALL');
 
   const { data: inquiries = [], isLoading } = useQuery({
     queryKey: ['agent-inquiries'],
@@ -428,19 +601,25 @@ export default function AgentInquiries() {
     queryClient.invalidateQueries({ queryKey: ['agent-recent-inquiries'] });
   };
 
-  const filtered = inquiries.filter((inq) => {
-    if (activeTab === 'all') return true;
-    if (activeTab === 'open') return isOpenStage(inq.stage);
-    if (activeTab === 'scheduled') return isScheduledStage(inq.stage);
-    if (activeTab === 'closed') return isClosedStage(inq.stage);
-    if (activeTab === 'stale') return inq.isStale;
-    return true;
-  });
+  // Per-stage counts
+  const stageCounts = ALL_STAGES.reduce<Record<InquiryStage, number>>((acc, stage) => {
+    acc[stage] = inquiries.filter((i) => i.stage === stage).length;
+    return acc;
+  }, {} as Record<InquiryStage, number>);
 
-  const openCount = inquiries.filter((i) => isOpenStage(i.stage)).length;
-  const scheduledCount = inquiries.filter((i) => isScheduledStage(i.stage)).length;
-  const closedCount = inquiries.filter((i) => isClosedStage(i.stage)).length;
   const staleCount = inquiries.filter((i) => i.isStale).length;
+
+  function getCount(filter: StageFilter): number {
+    if (filter === 'ALL') return inquiries.length;
+    if (filter === 'STALE') return staleCount;
+    return stageCounts[filter] ?? 0;
+  }
+
+  const filtered = inquiries.filter((inq) => {
+    if (activeFilter === 'ALL') return true;
+    if (activeFilter === 'STALE') return inq.isStale;
+    return inq.stage === activeFilter;
+  });
 
   if (isLoading) {
     return (
@@ -457,65 +636,85 @@ export default function AgentInquiries() {
         <div className="flex items-center justify-between gap-3">
           <div>
             <h2 className="font-display text-lg font-semibold text-foreground">Inquiries</h2>
-            <p className="text-sm text-muted-foreground mt-0.5">Manage and respond to client inquiries</p>
+            <p className="text-sm text-muted-foreground mt-0.5">{inquiries.length} total · Manage and respond to client inquiries</p>
           </div>
         </div>
 
-        {/* Summary counts */}
-        <div className="flex flex-wrap gap-2">
-          <div className="flex items-center gap-1.5 bg-blue-50 border border-blue-200 rounded-lg px-3 py-1.5">
-            <span className="w-2 h-2 rounded-full bg-blue-500" />
-            <span className="text-xs font-semibold text-blue-700">{openCount} Open</span>
-          </div>
-          <div className="flex items-center gap-1.5 bg-purple-50 border border-purple-200 rounded-lg px-3 py-1.5">
-            <span className="w-2 h-2 rounded-full bg-purple-500" />
-            <span className="text-xs font-semibold text-purple-700">{scheduledCount} Scheduled</span>
-          </div>
-          <div className="flex items-center gap-1.5 bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-1.5">
-            <span className="w-2 h-2 rounded-full bg-emerald-500" />
-            <span className="text-xs font-semibold text-emerald-700">{closedCount} Closed</span>
-          </div>
-          {staleCount > 0 && (
-            <div className="flex items-center gap-1.5 bg-amber-50 border border-amber-200 rounded-lg px-3 py-1.5">
-              <AlertTriangle className="w-3 h-3 text-amber-600" />
-              <span className="text-xs font-semibold text-amber-700">{staleCount} Stale</span>
-            </div>
-          )}
-        </div>
-
-        {/* Filter tabs */}
-        <div className="flex gap-1 bg-muted/60 p-1 rounded-xl border border-border w-fit flex-wrap">
-          {FILTER_TABS.map((tab) => {
-            const count =
-              tab.value === 'open' ? openCount
-              : tab.value === 'scheduled' ? scheduledCount
-              : tab.value === 'closed' ? closedCount
-              : tab.value === 'stale' ? staleCount
-              : inquiries.length;
-            return (
+        {/* Quick summary pills */}
+        {inquiries.length > 0 && (
+          <div className="flex flex-wrap gap-2">
+            {stageCounts['INQUIRY'] > 0 && (
               <button
-                key={tab.value}
                 type="button"
-                onClick={() => setActiveTab(tab.value)}
-                className={cn(
-                  'px-3 py-1.5 rounded-md text-xs font-medium transition-all flex items-center gap-1.5',
-                  activeTab === tab.value
-                    ? 'bg-white text-foreground shadow-sm'
-                    : 'text-muted-foreground hover:text-foreground'
-                )}
+                onClick={() => setActiveFilter('INQUIRY')}
+                className="flex items-center gap-1.5 bg-blue-50 border border-blue-200 rounded-lg px-3 py-1.5 hover:bg-blue-100 transition-colors"
               >
-                {tab.label}
-                {count > 0 && (
-                  <span className={cn(
-                    'text-[10px] font-bold min-w-[16px] text-center',
-                    activeTab === tab.value ? 'text-muted-foreground' : 'text-muted-foreground/60'
-                  )}>
-                    {count}
-                  </span>
-                )}
+                <AlertCircle className="w-3 h-3 text-blue-600" />
+                <span className="text-xs font-semibold text-blue-700">{stageCounts['INQUIRY']} New</span>
               </button>
-            );
-          })}
+            )}
+            {(stageCounts['WAITING_RESPONSE'] + stageCounts['SCHEDULED'] + stageCounts['VIEWED']) > 0 && (
+              <div className="flex items-center gap-1.5 bg-violet-50 border border-violet-200 rounded-lg px-3 py-1.5">
+                <span className="w-2 h-2 rounded-full bg-violet-500" />
+                <span className="text-xs font-semibold text-violet-700">
+                  {stageCounts['WAITING_RESPONSE'] + stageCounts['SCHEDULED'] + stageCounts['VIEWED']} In Progress
+                </span>
+              </div>
+            )}
+            {(stageCounts['RENTED'] + stageCounts['PURCHASED']) > 0 && (
+              <div className="flex items-center gap-1.5 bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-1.5">
+                <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                <span className="text-xs font-semibold text-emerald-700">
+                  {stageCounts['RENTED'] + stageCounts['PURCHASED']} Closed Won
+                </span>
+              </div>
+            )}
+            {staleCount > 0 && (
+              <button
+                type="button"
+                onClick={() => setActiveFilter('STALE')}
+                className="flex items-center gap-1.5 bg-amber-50 border border-amber-200 rounded-lg px-3 py-1.5 hover:bg-amber-100 transition-colors"
+              >
+                <AlertTriangle className="w-3 h-3 text-amber-600" />
+                <span className="text-xs font-semibold text-amber-700">{staleCount} Stale</span>
+              </button>
+            )}
+          </div>
+        )}
+
+        {/* Filter tabs — scrollable */}
+        <div className="overflow-x-auto -mx-5 px-5 md:mx-0 md:px-0">
+          <div className="flex gap-1 bg-muted/60 p-1 rounded-xl border border-border w-fit min-w-full md:min-w-0">
+            {FILTER_TABS.map((tab) => {
+              const count = getCount(tab.value);
+              return (
+                <button
+                  key={tab.value}
+                  type="button"
+                  onClick={() => setActiveFilter(tab.value)}
+                  className={cn(
+                    'px-3 py-1.5 rounded-md text-xs font-medium transition-all flex items-center gap-1.5 whitespace-nowrap flex-shrink-0',
+                    activeFilter === tab.value
+                      ? 'bg-white text-foreground shadow-sm'
+                      : 'text-muted-foreground hover:text-foreground'
+                  )}
+                >
+                  {tab.dot && (
+                    <span className={cn('w-1.5 h-1.5 rounded-full flex-shrink-0', tab.dot)} />
+                  )}
+                  {tab.label}
+                  {count > 0 && (
+                    <span className={cn(
+                      'text-[10px] font-bold min-w-[16px] text-center',
+                      activeFilter === tab.value ? 'text-muted-foreground' : 'text-muted-foreground/60'
+                    )}>
+                      {count}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
         </div>
 
         {/* Inquiry list */}
@@ -525,10 +724,10 @@ export default function AgentInquiries() {
               <MessageSquare className="w-6 h-6 text-muted-foreground" />
             </div>
             <h3 className="font-display font-semibold text-foreground mb-1">
-              {activeTab === 'all' ? 'No inquiries yet' : `No ${activeTab} inquiries`}
+              {activeFilter === 'ALL' ? 'No inquiries yet' : `No ${activeFilter.toLowerCase().replace('_', ' ')} inquiries`}
             </h3>
             <p className="text-sm text-muted-foreground max-w-xs">
-              {activeTab === 'all'
+              {activeFilter === 'ALL'
                 ? "When clients submit inquiries on your listings, they'll appear here."
                 : 'No inquiries match this filter right now.'}
             </p>

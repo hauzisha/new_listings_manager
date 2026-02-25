@@ -132,7 +132,7 @@ Located in `webapp/`. React + Vite + TailwindCSS + shadcn/ui.
 | `/dashboard/agent/listings/new` | New Listing | Full creation form with media upload, AI description |
 | `/dashboard/agent/listings/edit/:id` | Edit Listing | Same form prefilled, read-only slug, deactivate button |
 | `/dashboard/agent/listings/:id` | View Listing | Full read-only detail view with gallery, share, edit button |
-| `/dashboard/agent/inquiries` | Agent Inquiries | — |
+| `/dashboard/agent/inquiries` | Agent Inquiries | All stages, per-stage filter tabs, promoter attribution, platform badge, confirmation dialogs, auto-commission |
 | `/dashboard/agent/tracking-links` | Tracking Links | — |
 | `/dashboard/agent/commissions` | Commissions | — |
 | `/dashboard/promoter` | Promoter Overview | Requires PROMOTER role |

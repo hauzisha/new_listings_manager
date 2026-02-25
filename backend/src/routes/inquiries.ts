@@ -58,6 +58,25 @@ function parseInquiry(inquiry: Record<string, unknown>) {
 
 // ─── Routes ───────────────────────────────────────────────────────────────────
 
+// ─── Shape stage history entries for the frontend ─────────────────────────────
+
+function shapeStageHistory(raw: string): Array<{
+  id: string;
+  fromStage: string | null;
+  toStage: string;
+  note: string | null;
+  createdAt: string;
+}> {
+  const entries: InquiryStageHistoryEntry[] = JSON.parse(raw || "[]");
+  return entries.map((entry, i) => ({
+    id: `${i}`,
+    fromStage: entries[i - 1]?.stage ?? null,
+    toStage: entry.stage,
+    note: entry.note ?? null,
+    createdAt: entry.timestamp,
+  }));
+}
+
 // GET /api/inquiries
 inquiriesRouter.get("/inquiries", async (c) => {
   const sessionUser = c.get("user");
@@ -82,14 +101,57 @@ inquiriesRouter.get("/inquiries", async (c) => {
       listing: {
         select: { title: true, slug: true, listingNumber: true },
       },
+      trackingLink: {
+        select: {
+          platform: true,
+          promoterId: true,
+        },
+      },
     },
   });
 
+  // Collect all promoter IDs to look up names in one query
+  const promoterIds = [
+    ...new Set(
+      inquiries
+        .map((inq) => inq.promoterId ?? inq.trackingLink?.promoterId)
+        .filter((id): id is string => id != null)
+    ),
+  ];
+
+  const promoters =
+    promoterIds.length > 0
+      ? await prisma.user.findMany({
+          where: { id: { in: promoterIds } },
+          select: { id: true, name: true },
+        })
+      : [];
+
+  const promoterMap = new Map(promoters.map((p) => [p.id, p.name]));
+
   const result = inquiries.map((inquiry) => {
-    const parsed = parseInquiry(inquiry as unknown as Record<string, unknown>);
     const isTerminal = ["RENTED", "PURCHASED", "NO_SHOW", "CANCELLED"].includes(inquiry.stage);
     const isStale = !isTerminal && inquiry.createdAt < staleThreshold;
-    return { ...parsed, isStale };
+    const promoterId = inquiry.promoterId ?? inquiry.trackingLink?.promoterId ?? null;
+    const promoterName = promoterId ? (promoterMap.get(promoterId) ?? null) : null;
+    const platform = inquiry.trackingLink?.platform ?? null;
+
+    return {
+      id: inquiry.id,
+      clientName: inquiry.clientName,
+      clientPhone: inquiry.clientPhone,
+      clientEmail: inquiry.clientEmail,
+      message: inquiry.message,
+      stage: inquiry.stage,
+      firstResponseAt: inquiry.firstResponseAt,
+      createdAt: inquiry.createdAt,
+      updatedAt: inquiry.updatedAt,
+      listing: inquiry.listing,
+      stageHistory: shapeStageHistory(inquiry.stageHistory),
+      promoterName,
+      platform,
+      isStale,
+    };
   });
 
   return c.json({ data: result });
@@ -208,7 +270,24 @@ inquiriesRouter.patch(
       await createCommissions(id);
     }
 
-    return c.json({ data: parseInquiry(updated as unknown as Record<string, unknown>) });
+    return c.json({
+      data: {
+        id: updated.id,
+        clientName: updated.clientName,
+        clientPhone: updated.clientPhone,
+        clientEmail: updated.clientEmail,
+        message: updated.message,
+        stage: updated.stage,
+        firstResponseAt: updated.firstResponseAt,
+        createdAt: updated.createdAt,
+        updatedAt: updated.updatedAt,
+        listing: updated.listing,
+        stageHistory: shapeStageHistory(updated.stageHistory),
+        promoterName: null,
+        platform: null,
+        isStale: false,
+      },
+    });
   }
 );
 
