@@ -2,8 +2,7 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Search, Building2, MapPin, User, ChevronDown, X,
-  ExternalLink, MoreVertical, CheckCircle2, EyeOff,
-  Tag, DollarSign, ArrowUpDown, Calendar, Hash,
+  ExternalLink, Tag, Calendar, Hash, DollarSign,
 } from "lucide-react";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { Button } from "@/components/ui/button";
@@ -13,10 +12,10 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
+  Dialog, DialogContent,
 } from "@/components/ui/dialog";
 import {
-  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger,
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Separator } from "@/components/ui/separator";
 import { api } from "@/lib/api";
@@ -130,6 +129,15 @@ function StatusChanger({ listing, onChanged }: { listing: AdminListing; onChange
 
 // ─── Detail dialog ─────────────────────────────────────────────────────────────
 
+function InfoCell({ label, value }: { label: string; value: React.ReactNode }) {
+  return (
+    <div className="bg-muted/50 rounded-xl px-3 py-2.5">
+      <p className="text-[10px] text-muted-foreground uppercase tracking-wide font-medium mb-1">{label}</p>
+      <div className="text-sm font-semibold text-foreground leading-snug">{value}</div>
+    </div>
+  );
+}
+
 function ListingDetailDialog({
   listing,
   onClose,
@@ -139,125 +147,147 @@ function ListingDetailDialog({
 }) {
   return (
     <Dialog open onOpenChange={() => onClose()}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <div className="flex items-start justify-between gap-3 pr-8">
-            <div className="space-y-1.5">
-              <div className="flex flex-wrap gap-1.5">
-                <StatusBadge status={listing.status} />
-                <TypeBadge type={listing.listingType} />
-                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold border border-border text-muted-foreground">
-                  {titleCase(listing.propertyType)}
-                </span>
-              </div>
-              <DialogTitle className="text-lg leading-snug">{listing.title}</DialogTitle>
-              <DialogDescription className="flex items-center gap-1 text-sm">
-                <MapPin className="w-3.5 h-3.5 flex-shrink-0" />
-                {listing.location}
-              </DialogDescription>
-            </div>
-          </div>
-        </DialogHeader>
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto p-0 gap-0">
 
-        {/* Image */}
-        {listing.images.length > 0 && (
-          <div className="w-full aspect-video rounded-xl overflow-hidden bg-muted">
-            <img src={listing.images[0]} alt={listing.title} className="w-full h-full object-cover" />
-          </div>
-        )}
-
-        {/* Key info grid */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-          <div className="bg-muted/50 rounded-xl p-3">
-            <p className="text-[11px] text-muted-foreground uppercase tracking-wide mb-1">Price</p>
-            <p className="font-bold text-foreground text-sm">
-              {formatKES(listing.price)}
-              {listing.listingType === "RENTAL" && <span className="text-xs font-normal text-muted-foreground">/mo</span>}
-            </p>
-          </div>
-          <div className="bg-muted/50 rounded-xl p-3">
-            <p className="text-[11px] text-muted-foreground uppercase tracking-wide mb-1">Agent</p>
-            <p className="font-semibold text-foreground text-sm truncate">{listing.agentName}</p>
-          </div>
-          <div className="bg-muted/50 rounded-xl p-3">
-            <p className="text-[11px] text-muted-foreground uppercase tracking-wide mb-1">Listing #</p>
-            <p className="font-semibold text-foreground text-sm">#{listing.listingNumber}</p>
-          </div>
-          {listing.bedrooms != null && (
-            <div className="bg-muted/50 rounded-xl p-3">
-              <p className="text-[11px] text-muted-foreground uppercase tracking-wide mb-1">Bedrooms</p>
-              <p className="font-semibold text-foreground text-sm">{listing.bedrooms}</p>
+        {/* Hero image — clean, no overlapping text */}
+        <div className="relative w-full h-52 sm:h-64 bg-muted overflow-hidden rounded-t-xl flex-shrink-0">
+          {listing.images.length > 0 ? (
+            <img
+              src={listing.images[0]}
+              alt={listing.title}
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-muted to-muted/40">
+              <Building2 className="w-14 h-14 text-muted-foreground/20" />
             </div>
           )}
-          {listing.bathrooms != null && (
-            <div className="bg-muted/50 rounded-xl p-3">
-              <p className="text-[11px] text-muted-foreground uppercase tracking-wide mb-1">Bathrooms</p>
-              <p className="font-semibold text-foreground text-sm">{listing.bathrooms}</p>
-            </div>
-          )}
-          {listing.areaSqft != null && (
-            <div className="bg-muted/50 rounded-xl p-3">
-              <p className="text-[11px] text-muted-foreground uppercase tracking-wide mb-1">Area</p>
-              <p className="font-semibold text-foreground text-sm">
-                {listing.areaSqft.toLocaleString()} {listing.areaUnit}
-              </p>
+          {/* Minimal gradient at bottom so title is readable */}
+          <div className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-black/60 to-transparent" />
+          {/* Image count pill if multiple */}
+          {listing.images.length > 1 && (
+            <div className="absolute bottom-3 right-3 bg-black/50 backdrop-blur-sm text-white text-xs px-2 py-0.5 rounded-full">
+              1 / {listing.images.length}
             </div>
           )}
         </div>
 
-        {/* Commission row */}
-        <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
-          <span className="flex items-center gap-1">
-            <DollarSign className="w-3.5 h-3.5" />
-            Agent comm: <strong className="text-foreground ml-0.5">{listing.agentCommissionPct}%</strong>
-          </span>
-          <span className="flex items-center gap-1">
-            <DollarSign className="w-3.5 h-3.5" />
-            Promoter comm: <strong className="text-foreground ml-0.5">{listing.promoterCommissionPct}%</strong>
-          </span>
-          <span className="flex items-center gap-1">
-            <DollarSign className="w-3.5 h-3.5" />
-            Company comm: <strong className="text-foreground ml-0.5">{listing.companyCommissionPct}%</strong>
-          </span>
-        </div>
+        {/* Content */}
+        <div className="p-5 space-y-4">
 
-        <Separator />
-
-        {/* Description */}
-        <div>
-          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Description</p>
-          <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-line">
-            {listing.description}
-          </p>
-        </div>
-
-        {/* Amenities */}
-        {listing.amenities.length > 0 && (
-          <div>
-            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Amenities</p>
+          {/* Title + badges */}
+          <div className="space-y-2">
             <div className="flex flex-wrap gap-1.5">
-              {listing.amenities.map((a) => (
-                <span key={a} className="text-xs bg-muted text-muted-foreground px-2.5 py-1 rounded-full">
-                  {a}
+              <StatusBadge status={listing.status} />
+              <TypeBadge type={listing.listingType} />
+              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold border border-border text-muted-foreground bg-muted/40">
+                {titleCase(listing.propertyType)}
+              </span>
+              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold border border-border text-muted-foreground bg-muted/40">
+                {titleCase(listing.nature)}
+              </span>
+            </div>
+            <h2 className="text-lg font-bold text-foreground leading-snug">{listing.title}</h2>
+            <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
+              <MapPin className="w-3.5 h-3.5 flex-shrink-0 text-primary/70" />
+              {listing.location}
+            </p>
+            {(listing.nearbyLandmarks?.length ?? 0) > 0 && (
+              <div className="flex flex-wrap gap-1">
+                {listing.nearbyLandmarks.map((lm) => (
+                  <span key={lm} className="text-[11px] text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
+                    Near {lm}
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <Separator />
+
+          {/* Key facts grid */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+            <InfoCell
+              label="Price"
+              value={
+                <span>
+                  {formatKES(listing.price)}
+                  {listing.listingType === "RENTAL" && (
+                    <span className="text-xs font-normal text-muted-foreground ml-0.5">/mo</span>
+                  )}
                 </span>
+              }
+            />
+            <InfoCell label="Agent" value={listing.agentName} />
+            <InfoCell label="Listing #" value={`#${listing.listingNumber}`} />
+            {listing.bedrooms != null && (
+              <InfoCell label="Bedrooms" value={listing.bedrooms} />
+            )}
+            {listing.bathrooms != null && (
+              <InfoCell label="Bathrooms" value={listing.bathrooms} />
+            )}
+            {listing.areaSqft != null && (
+              <InfoCell label="Area" value={`${listing.areaSqft.toLocaleString()} ${listing.areaUnit}`} />
+            )}
+            <InfoCell
+              label="Listed"
+              value={new Date(listing.createdAt).toLocaleDateString("en-KE", {
+                day: "numeric", month: "short", year: "numeric",
+              })}
+            />
+            <InfoCell
+              label="Updated"
+              value={new Date(listing.updatedAt).toLocaleDateString("en-KE", {
+                day: "numeric", month: "short", year: "numeric",
+              })}
+            />
+          </div>
+
+          {/* Commission breakdown */}
+          <div className="bg-muted/30 border border-border rounded-xl px-4 py-3">
+            <p className="text-[10px] text-muted-foreground uppercase tracking-wide font-medium mb-2.5">Commission Split</p>
+            <div className="grid grid-cols-3 gap-3">
+              {[
+                { label: "Agent", value: listing.agentCommissionPct },
+                { label: "Promoter", value: listing.promoterCommissionPct },
+                { label: "Company", value: listing.companyCommissionPct },
+              ].map(({ label, value }) => (
+                <div key={label} className="text-center">
+                  <p className="text-lg font-bold text-foreground leading-none">{value}%</p>
+                  <p className="text-[11px] text-muted-foreground mt-0.5">{label}</p>
+                </div>
               ))}
             </div>
           </div>
-        )}
 
-        {/* Actions */}
-        <div className="flex items-center justify-between pt-1">
-          <StatusChanger listing={listing} onChanged={onClose} />
-          <div className="flex gap-2">
-            <Button variant="outline" size="sm" className="text-xs gap-1.5" asChild>
-              <Link to={`/listings/${listing.slug}`} target="_blank">
-                <ExternalLink className="w-3.5 h-3.5" />
-                Public Page
-              </Link>
-            </Button>
-            <Button variant="outline" size="sm" className="text-xs" onClick={onClose}>
-              Close
-            </Button>
+          {/* Amenities */}
+          {listing.amenities.length > 0 && (
+            <div>
+              <p className="text-[10px] text-muted-foreground uppercase tracking-wide font-medium mb-2">Amenities</p>
+              <div className="flex flex-wrap gap-1.5">
+                {listing.amenities.map((a) => (
+                  <span key={a} className="text-xs bg-muted text-muted-foreground px-2.5 py-1 rounded-full border border-border">
+                    {a}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Actions */}
+          <div className="flex items-center justify-between pt-1 border-t border-border">
+            <StatusChanger listing={listing} onChanged={onClose} />
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" className="text-xs gap-1.5" asChild>
+                <Link to={`/listings/${listing.slug}`} target="_blank">
+                  <ExternalLink className="w-3.5 h-3.5" />
+                  Public Page
+                </Link>
+              </Button>
+              <Button variant="outline" size="sm" className="text-xs" onClick={onClose}>
+                Close
+              </Button>
+            </div>
           </div>
         </div>
       </DialogContent>
