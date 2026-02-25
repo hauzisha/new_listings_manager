@@ -205,6 +205,28 @@ listingsRouter.get("/listings/agent", async (c) => {
   return c.json({ data: listings.map((l) => parseListing(l as unknown as Record<string, unknown>)) });
 });
 
+// GET /api/listings/by-slug/:slug  (no auth required)
+listingsRouter.get("/listings/by-slug/:slug", async (c) => {
+  const { slug } = c.req.param();
+  const listing = await prisma.listing.findUnique({
+    where: { slug },
+    include: {
+      createdBy: {
+        select: { name: true, phone: true }
+      }
+    }
+  });
+  if (!listing) {
+    return c.json({ error: { message: "Listing not found", code: "NOT_FOUND" } }, 404);
+  }
+  // Only return ACTIVE listings publicly
+  if (listing.status !== "ACTIVE") {
+    return c.json({ error: { message: "Listing not found", code: "NOT_FOUND" } }, 404);
+  }
+  const parsed = parseListing(listing as unknown as Record<string, unknown>);
+  return c.json({ data: parsed });
+});
+
 // GET /api/listings/:id
 listingsRouter.get("/listings/:id", async (c) => {
   const sessionUser = c.get("user");
@@ -231,6 +253,74 @@ listingsRouter.get("/listings/:id", async (c) => {
 
   return c.json({ data: parseListing(listing as unknown as Record<string, unknown>) });
 });
+
+const publicInquirySchema = z.object({
+  listingId: z.string(),
+  clientName: z.string().min(1),
+  clientEmail: z.string().email().optional(),
+  clientPhone: z.string().min(1),
+  message: z.string().optional(),
+  refCode: z.string().optional(),
+});
+
+// POST /api/inquiries/public  (no auth required)
+listingsRouter.post(
+  "/inquiries/public",
+  zValidator("json", publicInquirySchema),
+  async (c) => {
+    const body = c.req.valid("json");
+    const { listingId, clientName, clientEmail, clientPhone, message, refCode } = body;
+
+    // 1. Find listing (must exist and be ACTIVE)
+    const listing = await prisma.listing.findUnique({ where: { id: listingId } });
+    if (!listing || listing.status !== "ACTIVE") {
+      return c.json({ error: { message: "Listing not found", code: "NOT_FOUND" } }, 404);
+    }
+
+    // 2. Resolve tracking link if refCode provided
+    let trackingLinkId: string | null = null;
+    let promoterId: string | null = null;
+    let trackingLink: { id: string; creatorId: string; creatorRole: string } | null = null;
+
+    if (refCode) {
+      trackingLink = await prisma.trackingLink.findUnique({
+        where: { refCode },
+        select: { id: true, creatorId: true, creatorRole: true },
+      });
+      if (trackingLink) {
+        trackingLinkId = trackingLink.id;
+        promoterId = trackingLink.creatorRole === "PROMOTER" ? trackingLink.creatorId : null;
+      }
+    }
+
+    // 3. Create inquiry
+    const inquiry = await prisma.inquiry.create({
+      data: {
+        listingId,
+        agentId: listing.createdById,
+        promoterId,
+        trackingLinkId,
+        clientName,
+        clientEmail,
+        clientPhone,
+        message,
+        stage: "INQUIRY",
+        stageHistory: JSON.stringify([{ stage: "INQUIRY", timestamp: new Date().toISOString() }]),
+      },
+    });
+
+    // 4. Increment inquiry count on tracking link if found
+    if (trackingLink) {
+      await prisma.trackingLink.update({
+        where: { id: trackingLink.id },
+        data: { inquiryCount: { increment: 1 } },
+      });
+    }
+
+    // 5. Return success
+    return c.json({ data: { id: inquiry.id, message: "Inquiry submitted successfully" } }, 201);
+  }
+);
 
 // POST /api/listings
 listingsRouter.post(
