@@ -35,6 +35,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Skeleton } from '@/components/ui/skeleton';
 import { NumberStepper } from '@/components/listings/NumberStepper';
+import { MediaUpload } from '@/components/listings/MediaUpload';
 import { api } from '@/lib/api';
 import type { Listing } from '@/lib/types';
 import { cn } from '@/lib/utils';
@@ -431,7 +432,7 @@ function SuccessDialog({
               Create Another
             </Button>
             <Button className="flex-1" onClick={onViewAll}>
-              View All Listings
+              View Listing
             </Button>
           </div>
         </div>
@@ -446,6 +447,8 @@ export default function NewListing() {
   const navigate = useNavigate();
   const [createdListing, setCreatedListing] = useState<Listing | null>(null);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [uploadedImages, setUploadedImages] = useState<string[]>([]);
+  const [uploadedVideos, setUploadedVideos] = useState<string[]>([]);
 
   // Local state for totalCommissionPct (UI only, not sent to API)
   const [totalCommissionPct, setTotalCommissionPct] = useState<string>('');
@@ -506,7 +509,7 @@ export default function NewListing() {
 
   const createMutation = useMutation({
     mutationFn: (data: ListingFormValues) =>
-      api.post<Listing>('/api/listings', { ...data, images: [] }),
+      api.post<Listing>('/api/listings', { ...data, images: uploadedImages, videos: uploadedVideos }),
     onSuccess: (listing) => {
       toast.success('Listing created!', { description: 'Your listing is now live.' });
       setCreatedListing(listing);
@@ -545,6 +548,8 @@ export default function NewListing() {
     setTotalCommissionPct('');
     setShowSuccess(false);
     setCreatedListing(null);
+    setUploadedImages([]);
+    setUploadedVideos([]);
   };
 
   const toggleAmenity = (amenity: string, current: string[]) => {
@@ -892,7 +897,18 @@ export default function NewListing() {
                 />
               </SectionCard>
 
-              {/* Section 5: Description */}
+              {/* Section 5: Photos & Videos */}
+              <SectionCard title="Photos & Videos">
+                <MediaUpload
+                  images={uploadedImages}
+                  videos={uploadedVideos}
+                  onImagesChange={setUploadedImages}
+                  onVideosChange={setUploadedVideos}
+                  disabled={createMutation.isPending}
+                />
+              </SectionCard>
+
+              {/* Section 6: Description */}
               <SectionCard title="Description">
                 <div className="space-y-3">
                   <Textarea
@@ -1121,7 +1137,9 @@ export default function NewListing() {
       <SuccessDialog
         open={showSuccess}
         listing={createdListing}
-        onViewAll={() => navigate('/dashboard/agent/listings')}
+        onViewAll={() => createdListing
+          ? navigate(`/dashboard/agent/listings/${createdListing.id}`)
+          : navigate('/dashboard/agent/listings')}
         onCreateAnother={handleCreateAnother}
       />
     </DashboardLayout>

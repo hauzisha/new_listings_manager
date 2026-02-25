@@ -21,6 +21,7 @@ import AgentOverview from "./pages/dashboard/agent/Overview";
 import AgentListings from "./pages/dashboard/agent/Listings";
 import NewListing from "./pages/dashboard/agent/NewListing";
 import EditListing from "./pages/dashboard/agent/EditListing";
+import ViewListing from "./pages/dashboard/agent/ViewListing";
 import AgentInquiries from "./pages/dashboard/agent/Inquiries";
 import AgentTrackingLinks from "./pages/dashboard/agent/TrackingLinks";
 import AgentCommissions from "./pages/dashboard/agent/Commissions";
@@ -59,6 +60,7 @@ const App = () => (
           <Route path="/dashboard/agent" element={<AgentOverview />} />
           <Route path="/dashboard/agent/listings/new" element={<NewListing />} />
           <Route path="/dashboard/agent/listings/edit/:id" element={<EditListing />} />
+          <Route path="/dashboard/agent/listings/:id" element={<ViewListing />} />
           <Route path="/dashboard/agent/listings" element={<AgentListings />} />
           <Route path="/dashboard/agent/inquiries" element={<AgentInquiries />} />
           <Route path="/dashboard/agent/tracking-links" element={<AgentTrackingLinks />} />

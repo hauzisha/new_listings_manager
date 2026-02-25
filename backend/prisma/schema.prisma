@@ -116,6 +116,7 @@ model Listing {
   description  String
   amenities    String   @default("[]") // JSON array as string
   images       String   @default("[]") // JSON array of image URLs
+  videos       String   @default("[]") // JSON array of video URLs
 
   // Status: ACTIVE | INACTIVE | SOLD | RENTED
   status String @default("ACTIVE")

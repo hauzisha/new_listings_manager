@@ -36,6 +36,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { NumberStepper } from '@/components/listings/NumberStepper';
+import { MediaUpload } from '@/components/listings/MediaUpload';
 import { api } from '@/lib/api';
 import type { Listing } from '@/lib/types';
 import { cn } from '@/lib/utils';
@@ -267,6 +268,8 @@ export default function EditListing() {
   const queryClient = useQueryClient();
   const [showDeactivate, setShowDeactivate] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [editImages, setEditImages] = useState<string[]>([]);
+  const [editVideos, setEditVideos] = useState<string[]>([]);
 
   // Local state for totalCommissionPct (UI only, not sent to API)
   const [totalCommissionPct, setTotalCommissionPct] = useState<string>('');
@@ -350,6 +353,10 @@ export default function EditListing() {
       if (computedTotal > 0) {
         setTotalCommissionPct(String(computedTotal));
       }
+
+      // Seed media state from existing listing
+      setEditImages(listing.images ?? []);
+      setEditVideos((listing as { videos?: string[] }).videos ?? []);
     }
   }, [listing, reset]);
 
@@ -373,7 +380,7 @@ export default function EditListing() {
 
   const updateMutation = useMutation({
     mutationFn: (data: ListingFormValues) =>
-      api.put<Listing>(`/api/listings/${id}`, { ...data, images: listing?.images ?? [] }),
+      api.put<Listing>(`/api/listings/${id}`, { ...data, images: editImages, videos: editVideos }),
     onSuccess: () => {
       toast.success('Listing updated');
       queryClient.invalidateQueries({ queryKey: ['listing', id] });
@@ -788,8 +795,7 @@ export default function EditListing() {
                 </SectionCard>
 
                 {/* Section 4: Amenities */}
-                <SectionCard title="Amenities">
-                  <Controller
+                <SectionCard title="Amenities">                  <Controller
                     control={control}
                     name="amenities"
                     render={({ field }) => (
@@ -814,6 +820,17 @@ export default function EditListing() {
                         })}
                       </div>
                     )}
+                  />
+                </SectionCard>
+
+                {/* Section 5: Photos & Videos */}
+                <SectionCard title="Photos & Videos">
+                  <MediaUpload
+                    images={editImages}
+                    videos={editVideos}
+                    onImagesChange={setEditImages}
+                    onVideosChange={setEditVideos}
+                    disabled={updateMutation.isPending}
                   />
                 </SectionCard>
 

@@ -23,6 +23,7 @@ function parseListing(listing: Record<string, unknown>) {
     ...listing,
     amenities: JSON.parse((listing.amenities as string) || "[]"),
     images: JSON.parse((listing.images as string) || "[]"),
+    videos: JSON.parse((listing.videos as string) || "[]"),
     nearbyLandmarks: JSON.parse((listing.nearbyLandmarks as string) || "[]"),
   };
 }
@@ -70,6 +71,7 @@ const createListingSchema = z.object({
   description: z.string().min(1),
   amenities: z.array(z.string()).optional().default([]),
   images: z.array(z.string()).optional().default([]),
+  videos: z.array(z.string()).optional().default([]),
   agentCommissionPct: z.number().min(0).max(100).default(0),
   promoterCommissionPct: z.number().min(0).max(100).default(0),
   companyCommissionPct: z.number().min(0).max(100).default(0),
@@ -194,6 +196,7 @@ listingsRouter.post(
         description: body.description,
         amenities: JSON.stringify(body.amenities ?? []),
         images: JSON.stringify(body.images ?? []),
+        videos: JSON.stringify(body.videos ?? []),
         agentCommissionPct: body.agentCommissionPct ?? 0,
         promoterCommissionPct: body.promoterCommissionPct ?? 0,
         companyCommissionPct: body.companyCommissionPct ?? 0,
@@ -249,6 +252,7 @@ listingsRouter.put(
     if (body.description !== undefined) updateData.description = body.description;
     if (body.amenities !== undefined) updateData.amenities = JSON.stringify(body.amenities);
     if (body.images !== undefined) updateData.images = JSON.stringify(body.images);
+    if (body.videos !== undefined) updateData.videos = JSON.stringify(body.videos);
     if (body.agentCommissionPct !== undefined) updateData.agentCommissionPct = body.agentCommissionPct;
     if (body.promoterCommissionPct !== undefined) updateData.promoterCommissionPct = body.promoterCommissionPct;
     if (body.companyCommissionPct !== undefined) updateData.companyCommissionPct = body.companyCommissionPct;

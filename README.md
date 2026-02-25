@@ -126,7 +126,10 @@ Located in `webapp/`. React + Vite + TailwindCSS + shadcn/ui.
 | `/dashboard/admin/users` | Admin Users | Approve/reject + full user table |
 | `/dashboard/admin/settings` | Admin Settings | System settings form |
 | `/dashboard/agent` | Agent Overview | Requires AGENT role |
-| `/dashboard/agent/listings` | Agent Listings | — |
+| `/dashboard/agent/listings` | Agent Listings | Grid view with filter tabs and stats |
+| `/dashboard/agent/listings/new` | New Listing | Full creation form with media upload, AI description |
+| `/dashboard/agent/listings/edit/:id` | Edit Listing | Same form prefilled, read-only slug, deactivate button |
+| `/dashboard/agent/listings/:id` | View Listing | Full read-only detail view with gallery, share, edit button |
 | `/dashboard/agent/inquiries` | Agent Inquiries | — |
 | `/dashboard/agent/tracking-links` | Tracking Links | — |
 | `/dashboard/agent/commissions` | Commissions | — |
@@ -151,7 +154,12 @@ webapp/src/
   lib/
     api.ts            — Fetch wrapper, auto-unwraps { data: T }
     auth-client.ts    — Better Auth React client (useSession, signOut)
-    types.ts          — Shared TypeScript interfaces
+    types.ts          — Shared TypeScript interfaces (includes videos: string[])
+    upload.ts         — File upload utility with client-side image compression
+  components/
+    listings/
+      MediaUpload.tsx  — Drag-and-drop image/video uploader with thumbnails
+      NumberStepper.tsx — Stepper for bedrooms/bathrooms (shows — at 0)
   hooks/
     useCurrentUser.ts — Fetches role + approval status
     useNotifications.ts — Notifications list, unread count, mark-read mutations

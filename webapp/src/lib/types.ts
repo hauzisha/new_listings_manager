@@ -44,6 +44,7 @@ export interface Listing {
   description: string;
   amenities: string[];
   images: string[];
+  videos: string[];
   status: 'ACTIVE' | 'INACTIVE' | 'SOLD' | 'RENTED';
   agentCommissionPct: number;
   promoterCommissionPct: number;

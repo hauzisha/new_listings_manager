@@ -9,6 +9,7 @@ import { notificationsRouter } from "./routes/notifications";
 import { listingsRouter } from "./routes/listings";
 import { adminUsersRouter } from "./routes/admin/users";
 import { adminSettingsRouter } from "./routes/admin/settings";
+import { uploadRouter } from "./routes/upload";
 import { prisma } from "./prisma";
 
 const app = new Hono<{
@@ -100,6 +101,9 @@ app.route("/api", listingsRouter);
 // Admin routes
 app.route("/api/admin", adminUsersRouter);
 app.route("/api/admin", adminSettingsRouter);
+
+// Upload routes
+app.route("/api", uploadRouter);
 
 const port = Number(process.env.PORT) || 3000;
 

@@ -340,7 +340,7 @@ export default function AgentListings() {
               <ListingCard
                 key={listing.id}
                 listing={listing}
-                onClick={() => navigate(`/dashboard/agent/listings/edit/${listing.id}`)}
+                onClick={() => navigate(`/dashboard/agent/listings/${listing.id}`)}
                 onEdit={(e) => {
                   e.stopPropagation();
                   navigate(`/dashboard/agent/listings/edit/${listing.id}`);
