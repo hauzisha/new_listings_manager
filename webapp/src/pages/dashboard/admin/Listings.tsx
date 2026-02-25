@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Search, Building2, MapPin, User, ChevronDown, X,
-  ExternalLink, Tag, Calendar, Hash, DollarSign,
+  ExternalLink, Tag, Calendar, Hash, DollarSign, ChevronLeft, ChevronRight,
 } from "lucide-react";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { Button } from "@/components/ui/button";
@@ -138,6 +138,14 @@ function InfoCell({ label, value }: { label: string; value: React.ReactNode }) {
   );
 }
 
+function SectionLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-semibold mb-2">
+      {children}
+    </p>
+  );
+}
+
 function ListingDetailDialog({
   listing,
   onClose,
@@ -145,15 +153,23 @@ function ListingDetailDialog({
   listing: AdminListing;
   onClose: () => void;
 }) {
+  const [imgIndex, setImgIndex] = useState(0);
+  const [descExpanded, setDescExpanded] = useState(false);
+  const images = listing.images;
+  const shortDesc = listing.description?.slice(0, 160);
+  const hasMore = (listing.description?.length ?? 0) > 160;
+
   return (
     <Dialog open onOpenChange={() => onClose()}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto p-0 gap-0 overflow-hidden">
+      {/* flex-col so we can give scrollable body + sticky footer */}
+      <DialogContent className="max-w-2xl h-[92vh] flex flex-col p-0 gap-0 overflow-hidden">
 
-        {/* Hero image — flush to all edges, no padding, close button floats above */}
-        <div className="relative w-full h-48 sm:h-60 bg-muted flex-shrink-0">
-          {listing.images.length > 0 ? (
+        {/* ── IMAGE GALLERY ── */}
+        <div className="relative w-full h-52 sm:h-64 bg-muted flex-shrink-0 group">
+          {images.length > 0 ? (
             <img
-              src={listing.images[0]}
+              key={imgIndex}
+              src={images[imgIndex]}
               alt={listing.title}
               className="w-full h-full object-cover"
             />
@@ -162,131 +178,218 @@ function ListingDetailDialog({
               <Building2 className="w-14 h-14 text-muted-foreground/15" />
             </div>
           )}
-          {listing.images.length > 1 && (
-            <div className="absolute bottom-3 left-3 bg-black/50 backdrop-blur-sm text-white text-xs px-2.5 py-1 rounded-full">
-              1 / {listing.images.length} photos
-            </div>
+
+          {/* Prev / Next arrows */}
+          {images.length > 1 && (
+            <>
+              <button
+                onClick={() => setImgIndex(i => (i - 1 + images.length) % images.length)}
+                className="absolute left-3 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/50 hover:bg-black/70 text-white flex items-center justify-center transition-colors"
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+              <button
+                onClick={() => setImgIndex(i => (i + 1) % images.length)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/50 hover:bg-black/70 text-white flex items-center justify-center transition-colors"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </button>
+              {/* Dot indicators */}
+              <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5">
+                {images.map((_, i) => (
+                  <button
+                    key={i}
+                    onClick={() => setImgIndex(i)}
+                    className={cn(
+                      "w-1.5 h-1.5 rounded-full transition-all",
+                      i === imgIndex ? "bg-white w-3" : "bg-white/50"
+                    )}
+                  />
+                ))}
+              </div>
+              {/* Count */}
+              <div className="absolute bottom-3 right-3 bg-black/50 backdrop-blur-sm text-white text-xs px-2 py-0.5 rounded-full">
+                {imgIndex + 1} / {images.length}
+              </div>
+            </>
           )}
         </div>
 
-        {/* Content */}
-        <div className="p-5 space-y-4">
-
-          {/* Title + badges */}
-          <div className="space-y-2">
-            <div className="flex flex-wrap gap-1.5">
-              <StatusBadge status={listing.status} />
-              <TypeBadge type={listing.listingType} />
-              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold border border-border text-muted-foreground bg-muted/40">
-                {titleCase(listing.propertyType)}
-              </span>
-              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold border border-border text-muted-foreground bg-muted/40">
-                {titleCase(listing.nature)}
-              </span>
-            </div>
-            <h2 className="text-lg font-bold text-foreground leading-snug">{listing.title}</h2>
-            <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
-              <MapPin className="w-3.5 h-3.5 flex-shrink-0 text-primary/70" />
-              {listing.location}
-            </p>
-            {(listing.nearbyLandmarks?.length ?? 0) > 0 && (
-              <div className="flex flex-wrap gap-1">
-                {listing.nearbyLandmarks.map((lm) => (
-                  <span key={lm} className="text-[11px] text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
-                    Near {lm}
-                  </span>
-                ))}
-              </div>
-            )}
+        {/* Thumbnail strip */}
+        {images.length > 1 && (
+          <div className="flex gap-1.5 px-4 py-2 bg-muted/30 border-b border-border overflow-x-auto flex-shrink-0">
+            {images.map((src, i) => (
+              <button
+                key={i}
+                onClick={() => setImgIndex(i)}
+                className={cn(
+                  "flex-shrink-0 w-12 h-9 rounded-md overflow-hidden border-2 transition-all",
+                  i === imgIndex ? "border-primary" : "border-transparent opacity-50 hover:opacity-80"
+                )}
+              >
+                <img src={src} alt="" className="w-full h-full object-cover" />
+              </button>
+            ))}
           </div>
+        )}
 
-          <Separator />
+        {/* ── SCROLLABLE BODY ── */}
+        <div className="flex-1 overflow-y-auto">
+          <div className="p-5 space-y-5">
 
-          {/* Key facts grid */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-            <InfoCell
-              label="Price"
-              value={
-                <span>
-                  {formatKES(listing.price)}
-                  {listing.listingType === "RENTAL" && (
-                    <span className="text-xs font-normal text-muted-foreground ml-0.5">/mo</span>
-                  )}
-                </span>
-              }
-            />
-            <InfoCell label="Agent" value={listing.agentName} />
-            <InfoCell label="Listing #" value={`#${listing.listingNumber}`} />
-            {listing.bedrooms != null && (
-              <InfoCell label="Bedrooms" value={listing.bedrooms} />
-            )}
-            {listing.bathrooms != null && (
-              <InfoCell label="Bathrooms" value={listing.bathrooms} />
-            )}
-            {listing.areaSqft != null && (
-              <InfoCell label="Area" value={`${listing.areaSqft.toLocaleString()} ${listing.areaUnit}`} />
-            )}
-            <InfoCell
-              label="Listed"
-              value={new Date(listing.createdAt).toLocaleDateString("en-KE", {
-                day: "numeric", month: "short", year: "numeric",
-              })}
-            />
-            <InfoCell
-              label="Updated"
-              value={new Date(listing.updatedAt).toLocaleDateString("en-KE", {
-                day: "numeric", month: "short", year: "numeric",
-              })}
-            />
-          </div>
-
-          {/* Commission breakdown */}
-          <div className="bg-muted/30 border border-border rounded-xl px-4 py-3">
-            <p className="text-[10px] text-muted-foreground uppercase tracking-wide font-medium mb-2.5">Commission Split</p>
-            <div className="grid grid-cols-3 gap-3">
-              {[
-                { label: "Agent", value: listing.agentCommissionPct },
-                { label: "Promoter", value: listing.promoterCommissionPct },
-                { label: "Company", value: listing.companyCommissionPct },
-              ].map(({ label, value }) => (
-                <div key={label} className="text-center">
-                  <p className="text-lg font-bold text-foreground leading-none">{value}%</p>
-                  <p className="text-[11px] text-muted-foreground mt-0.5">{label}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Amenities */}
-          {listing.amenities.length > 0 && (
-            <div>
-              <p className="text-[10px] text-muted-foreground uppercase tracking-wide font-medium mb-2">Amenities</p>
+            {/* Title, badges, location */}
+            <div className="space-y-2">
               <div className="flex flex-wrap gap-1.5">
-                {listing.amenities.map((a) => (
-                  <span key={a} className="text-xs bg-muted text-muted-foreground px-2.5 py-1 rounded-full border border-border">
-                    {a}
-                  </span>
-                ))}
+                <StatusBadge status={listing.status} />
+                <TypeBadge type={listing.listingType} />
+                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold border border-border text-muted-foreground bg-muted/40">
+                  {titleCase(listing.propertyType)}
+                </span>
+                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold border border-border text-muted-foreground bg-muted/40">
+                  {titleCase(listing.nature)}
+                </span>
+              </div>
+              <h2 className="text-lg font-bold text-foreground leading-snug">{listing.title}</h2>
+              <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                <MapPin className="w-3.5 h-3.5 flex-shrink-0 text-primary/70" />
+                {listing.location}
+              </p>
+              {(listing.nearbyLandmarks?.length ?? 0) > 0 && (
+                <div className="flex flex-wrap gap-1">
+                  {listing.nearbyLandmarks.map((lm) => (
+                    <span key={lm} className="text-[11px] text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
+                      Near {lm}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <Separator />
+
+            {/* ── LISTING DETAILS ── */}
+            <div>
+              <SectionLabel>Listing Details</SectionLabel>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                <InfoCell
+                  label="Price"
+                  value={
+                    <span>
+                      {formatKES(listing.price)}
+                      {listing.listingType === "RENTAL" && (
+                        <span className="text-xs font-normal text-muted-foreground ml-0.5">/mo</span>
+                      )}
+                    </span>
+                  }
+                />
+                <InfoCell label="Listing #" value={`#${listing.listingNumber}`} />
+                {listing.bedrooms != null && <InfoCell label="Bedrooms" value={listing.bedrooms} />}
+                {listing.bathrooms != null && <InfoCell label="Bathrooms" value={listing.bathrooms} />}
+                {listing.areaSqft != null && (
+                  <InfoCell label="Area" value={`${listing.areaSqft.toLocaleString()} ${listing.areaUnit}`} />
+                )}
+                <InfoCell
+                  label="Listed"
+                  value={new Date(listing.createdAt).toLocaleDateString("en-KE", {
+                    day: "numeric", month: "short", year: "numeric",
+                  })}
+                />
+                <InfoCell
+                  label="Updated"
+                  value={new Date(listing.updatedAt).toLocaleDateString("en-KE", {
+                    day: "numeric", month: "short", year: "numeric",
+                  })}
+                />
               </div>
             </div>
-          )}
 
-          {/* Actions */}
-          <div className="flex items-center justify-between pt-1 border-t border-border">
-            <StatusChanger listing={listing} onChanged={onClose} />
-            <div className="flex gap-2">
-              <Button variant="outline" size="sm" className="text-xs gap-1.5" asChild>
-                <Link to={`/listings/${listing.slug}`} target="_blank">
-                  <ExternalLink className="w-3.5 h-3.5" />
-                  Public Page
-                </Link>
-              </Button>
-              <Button variant="outline" size="sm" className="text-xs" onClick={onClose}>
-                Close
-              </Button>
+            {/* Amenities */}
+            {listing.amenities.length > 0 && (
+              <div>
+                <SectionLabel>Amenities</SectionLabel>
+                <div className="flex flex-wrap gap-1.5">
+                  {listing.amenities.map((a) => (
+                    <span key={a} className="text-xs bg-muted text-muted-foreground px-2.5 py-1 rounded-full border border-border">
+                      {a}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Description — collapsed with ...see more */}
+            {listing.description && (
+              <div>
+                <SectionLabel>Description</SectionLabel>
+                <p className="text-sm text-muted-foreground leading-relaxed">
+                  {descExpanded ? listing.description : shortDesc}
+                  {hasMore && !descExpanded && "…"}
+                </p>
+                {hasMore && (
+                  <button
+                    onClick={() => setDescExpanded(e => !e)}
+                    className="text-xs text-primary hover:underline mt-1"
+                  >
+                    {descExpanded ? "Show less" : "See more"}
+                  </button>
+                )}
+              </div>
+            )}
+
+            <Separator />
+
+            {/* ── AGENT & COMMISSIONS ── */}
+            <div>
+              <SectionLabel>Agent & Commissions</SectionLabel>
+              <div className="space-y-3">
+                {/* Agent */}
+                <div className="flex items-center gap-3 bg-muted/40 rounded-xl px-3 py-2.5">
+                  <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                    <User className="w-4 h-4 text-primary" />
+                  </div>
+                  <div>
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Agent</p>
+                    <p className="text-sm font-semibold text-foreground">{listing.agentName}</p>
+                  </div>
+                </div>
+                {/* Commission split */}
+                <div className="bg-muted/30 border border-border rounded-xl px-4 py-3">
+                  <p className="text-[10px] text-muted-foreground uppercase tracking-wide font-medium mb-3">Commission Split</p>
+                  <div className="grid grid-cols-3 divide-x divide-border">
+                    {[
+                      { label: "Agent", value: listing.agentCommissionPct },
+                      { label: "Promoter", value: listing.promoterCommissionPct },
+                      { label: "Company", value: listing.companyCommissionPct },
+                    ].map(({ label, value }) => (
+                      <div key={label} className="text-center px-2">
+                        <p className="text-xl font-bold text-foreground leading-none">{value}%</p>
+                        <p className="text-[11px] text-muted-foreground mt-1">{label}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
             </div>
+
           </div>
         </div>
+
+        {/* ── STICKY ACTION BAR ── */}
+        <div className="flex-shrink-0 border-t border-border bg-background px-5 py-3 flex items-center gap-3">
+          <StatusChanger listing={listing} onChanged={onClose} />
+          <div className="flex gap-2 ml-auto">
+            <Button size="sm" variant="outline" className="gap-1.5" asChild>
+              <Link to={`/listings/${listing.slug}`} target="_blank">
+                <ExternalLink className="w-3.5 h-3.5" />
+                Public Page
+              </Link>
+            </Button>
+            <Button size="sm" onClick={onClose}>
+              Done
+            </Button>
+          </div>
+        </div>
+
       </DialogContent>
     </Dialog>
   );
