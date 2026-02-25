@@ -55,7 +55,7 @@ function StatusBadge({ isApproved }: { isApproved: boolean }) {
 
 interface PendingCardProps {
   user: User;
-  onApprove: (id: string) => void;
+  onApprove: (user: User) => void;
   onReject: (user: User) => void;
   approvingId: string | null;
 }
@@ -85,7 +85,7 @@ function PendingUserCard({ user, onApprove, onReject, approvingId }: PendingCard
             <Button
               size="sm"
               className="h-8 px-3 bg-emerald-600 hover:bg-emerald-700 text-white text-xs"
-              onClick={() => onApprove(user.id)}
+              onClick={() => onApprove(user)}
               disabled={approvingId === user.id}
             >
               {approvingId === user.id ? (
@@ -118,7 +118,7 @@ function UserTableRow({
   approvingId,
 }: {
   user: User;
-  onApprove: (id: string) => void;
+  onApprove: (user: User) => void;
   onReject: (user: User) => void;
   approvingId: string | null;
 }) {
@@ -156,7 +156,7 @@ function UserTableRow({
             <Button
               size="sm"
               className="h-7 px-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs"
-              onClick={() => onApprove(user.id)}
+              onClick={() => onApprove(user)}
               disabled={approvingId === user.id}
             >
               {approvingId === user.id ? (
@@ -183,6 +183,7 @@ function UserTableRow({
 export default function AdminUsers() {
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState<FilterTab>('all');
+  const [approveTarget, setApproveTarget] = useState<User | null>(null);
   const [rejectTarget, setRejectTarget] = useState<User | null>(null);
   const [approvingId, setApprovingId] = useState<string | null>(null);
   const [rejectingId, setRejectingId] = useState<string | null>(null);
@@ -208,9 +209,10 @@ export default function AdminUsers() {
   const approveMutation = useMutation({
     mutationFn: (id: string) => api.post<void>(`/api/admin/users/${id}/approve`),
     onMutate: (id: string) => setApprovingId(id),
-    onSuccess: (_data, id) => {
+    onSuccess: () => {
       toast.success('User approved successfully');
       queryClient.invalidateQueries({ queryKey: ['admin-users'] });
+      setApproveTarget(null);
       setApprovingId(null);
     },
     onError: () => {
@@ -234,8 +236,11 @@ export default function AdminUsers() {
     },
   });
 
-  const handleApprove = (id: string) => approveMutation.mutate(id);
+  const handleApprove = (user: User) => setApproveTarget(user);
   const handleReject = (user: User) => setRejectTarget(user);
+  const confirmApprove = () => {
+    if (approveTarget) approveMutation.mutate(approveTarget.id);
+  };
   const confirmReject = () => {
     if (rejectTarget) rejectMutation.mutate(rejectTarget.id);
   };
@@ -337,6 +342,33 @@ export default function AdminUsers() {
           </Tabs>
         </div>
       </div>
+
+      {/* Approve Confirmation Dialog */}
+      <AlertDialog open={!!approveTarget} onOpenChange={(open) => !open && setApproveTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Approve account?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Approve{' '}
+              <span className="font-semibold text-foreground">{approveTarget?.name}</span>'s
+              account? They will be notified and can log in immediately.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmApprove}
+              className="bg-primary hover:bg-primary/90"
+              disabled={approvingId !== null}
+            >
+              {approvingId ? (
+                <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin mr-2" />
+              ) : null}
+              Approve
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Reject Confirmation Dialog */}
       <AlertDialog open={!!rejectTarget} onOpenChange={(open) => !open && setRejectTarget(null)}>

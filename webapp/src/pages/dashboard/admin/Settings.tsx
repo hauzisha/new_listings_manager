@@ -40,11 +40,11 @@ export default function AdminSettings() {
   const saveMutation = useMutation({
     mutationFn: (data: SystemSettings) => api.put<SystemSettings>('/api/admin/settings', data),
     onSuccess: () => {
-      toast.success('Settings saved!');
+      toast.success('Settings saved', { description: 'System settings have been updated.' });
       queryClient.invalidateQueries({ queryKey: ['admin-settings'] });
     },
     onError: () => {
-      toast.error('Failed to save settings');
+      toast.error('Failed to save settings', { description: 'Please try again or check your connection.' });
     },
   });
 
