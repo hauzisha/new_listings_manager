@@ -7,6 +7,7 @@ import { auth } from "./auth";
 import { authExtRouter } from "./routes/auth-ext";
 import { notificationsRouter } from "./routes/notifications";
 import { listingsRouter } from "./routes/listings";
+import { trackingLinksRouter } from "./routes/tracking-links";
 import { adminUsersRouter } from "./routes/admin/users";
 import { adminSettingsRouter } from "./routes/admin/settings";
 import { uploadRouter } from "./routes/upload";
@@ -97,6 +98,9 @@ app.route("/api", notificationsRouter);
 
 // Listings routes
 app.route("/api", listingsRouter);
+
+// Tracking links routes
+app.route("/api", trackingLinksRouter);
 
 // Admin routes
 app.route("/api/admin", adminUsersRouter);

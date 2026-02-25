@@ -15,21 +15,21 @@ import {
   ChevronRight,
   Film,
   Building2,
-  Calendar,
-  Tag,
-  Layers,
-  TrendingUp,
+  ChevronDown,
+  ChevronUp,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { DashboardLayout } from '@/components/dashboard/DashboardLayout';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
+import { SharePanel } from '@/components/listings/SharePanel';
 import { api } from '@/lib/api';
 import type { Listing } from '@/lib/types';
 import { cn } from '@/lib/utils';
 
 // ─── Helpers ────────────────────────────────────────────────────────────────────
+
+const DESCRIPTION_TRUNCATE = 280;
 
 function formatPrice(price: number, listingType: Listing['listingType']) {
   const formatted = price.toLocaleString('en-KE');
@@ -87,22 +87,12 @@ function Gallery({ items }: { items: GalleryItem[] }) {
 
   return (
     <div className="space-y-3">
-      {/* Main display */}
       <div className="relative rounded-2xl overflow-hidden aspect-video bg-black">
         {item.type === 'image' ? (
-          <img
-            src={item.url}
-            alt={`Media ${current + 1}`}
-            className="w-full h-full object-cover"
-          />
+          <img src={item.url} alt={`Media ${current + 1}`} className="w-full h-full object-cover" />
         ) : (
-          <video
-            src={item.url}
-            controls
-            className="w-full h-full object-contain"
-          />
+          <video src={item.url} controls className="w-full h-full object-contain" />
         )}
-        {/* Navigation arrows */}
         {items.length > 1 && (
           <>
             <button
@@ -119,19 +109,15 @@ function Gallery({ items }: { items: GalleryItem[] }) {
             </button>
           </>
         )}
-        {/* Counter */}
         <div className="absolute bottom-3 right-3 bg-black/60 text-white text-xs font-medium px-2.5 py-1 rounded-full">
           {current + 1} / {items.length}
         </div>
-        {/* Type badge */}
         {item.type === 'video' && (
           <div className="absolute top-3 left-3 bg-black/60 text-white text-xs font-medium px-2 py-1 rounded flex items-center gap-1.5">
             <Film className="w-3.5 h-3.5" /> Video
           </div>
         )}
       </div>
-
-      {/* Thumbnails */}
       {items.length > 1 && (
         <div className="flex gap-2 overflow-x-auto pb-1">
           {items.map((it, i) => (
@@ -144,7 +130,7 @@ function Gallery({ items }: { items: GalleryItem[] }) {
               )}
             >
               {it.type === 'image' ? (
-                <img src={it.url} alt={`Thumb ${i + 1}`} className="w-full h-full object-cover" />
+                <img src={it.url} alt="" className="w-full h-full object-cover" />
               ) : (
                 <div className="w-full h-full bg-muted flex items-center justify-center">
                   <Film className="w-4 h-4 text-muted-foreground" />
@@ -153,6 +139,40 @@ function Gallery({ items }: { items: GalleryItem[] }) {
             </button>
           ))}
         </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Description with truncation ─────────────────────────────────────────────
+
+function Description({ text }: { text: string }) {
+  const [expanded, setExpanded] = useState(false);
+  const needsTruncate = text.length > DESCRIPTION_TRUNCATE;
+  const displayed = needsTruncate && !expanded ? text.slice(0, DESCRIPTION_TRUNCATE).trimEnd() : text;
+
+  return (
+    <div className="space-y-1.5">
+      <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-line">
+        {displayed}
+        {needsTruncate && !expanded && '…'}
+      </p>
+      {needsTruncate && (
+        <button
+          type="button"
+          onClick={() => setExpanded((v) => !v)}
+          className="flex items-center gap-1 text-xs font-semibold text-primary hover:text-primary/80 transition-colors"
+        >
+          {expanded ? (
+            <>
+              <ChevronUp className="w-3.5 h-3.5" /> Show less
+            </>
+          ) : (
+            <>
+              <ChevronDown className="w-3.5 h-3.5" /> See more
+            </>
+          )}
+        </button>
       )}
     </div>
   );
@@ -179,82 +199,39 @@ function CommissionCard({ listing }: { listing: Listing }) {
   if (totalPct === 0) return null;
 
   return (
-    <div className="bg-muted/50 rounded-xl p-4 space-y-2 text-xs font-mono">
-      <div className="flex justify-between items-center pb-2 border-b border-border">
-        <span className="text-muted-foreground font-sans text-xs font-medium">
-          Commission on {listing.listingType === 'RENTAL' ? '/mo' : 'sale'}
-        </span>
-        <span className="font-semibold text-foreground">
-          {fmt((price * totalPct) / 100)} ({totalPct}%)
-        </span>
+    <div className="bg-card border border-border rounded-xl overflow-hidden">
+      <div className="px-4 py-3 border-b border-border bg-muted/30">
+        <h2 className="font-display font-semibold text-sm text-foreground">Commission</h2>
       </div>
-      <div className="flex justify-between">
-        <span className="text-muted-foreground">└─ Agent</span>
-        <span className="font-semibold text-emerald-700">
-          {fmt((price * agentCommissionPct) / 100)} ({agentCommissionPct}%)
-        </span>
-      </div>
-      <div className="flex justify-between">
-        <span className="text-muted-foreground">└─ Company</span>
-        <span className="font-semibold text-blue-700">
-          {fmt((price * companyCommissionPct) / 100)} ({companyCommissionPct}%)
-        </span>
-      </div>
-      <div className="flex justify-between">
-        <span className="text-muted-foreground">└─ Promoter</span>
-        <span className="font-semibold text-amber-700">
-          {fmt((price * promoterCommissionPct) / 100)} ({promoterCommissionPct}%)
-        </span>
+      <div className="p-4 space-y-2 text-xs font-mono">
+        <div className="flex justify-between items-center pb-2 border-b border-border">
+          <span className="text-muted-foreground font-sans text-xs">
+            Total — {listing.listingType === 'RENTAL' ? 'per month' : 'on sale'}
+          </span>
+          <span className="font-semibold text-foreground">
+            {fmt((price * totalPct) / 100)} ({totalPct}%)
+          </span>
+        </div>
+        <div className="flex justify-between pl-2">
+          <span className="text-muted-foreground">└─ Agent</span>
+          <span className="font-semibold text-emerald-700">
+            {fmt((price * agentCommissionPct) / 100)} ({agentCommissionPct}%)
+          </span>
+        </div>
+        <div className="flex justify-between pl-2">
+          <span className="text-muted-foreground">└─ Company</span>
+          <span className="font-semibold text-blue-700">
+            {fmt((price * companyCommissionPct) / 100)} ({companyCommissionPct}%)
+          </span>
+        </div>
+        <div className="flex justify-between pl-2">
+          <span className="text-muted-foreground">└─ Promoter</span>
+          <span className="font-semibold text-amber-700">
+            {fmt((price * promoterCommissionPct) / 100)} ({promoterCommissionPct}%)
+          </span>
+        </div>
       </div>
     </div>
-  );
-}
-
-// ─── Share Button ─────────────────────────────────────────────────────────────
-
-function ShareButton({ listing }: { listing: Listing }) {
-  const [copied, setCopied] = useState(false);
-  const url = `https://hauzisha.co.ke/listings/${listing.slug}`;
-
-  const handleShare = async () => {
-    // Try native share first
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title: listing.title,
-          text: `Check out this property: ${listing.title} — ${formatPrice(listing.price, listing.listingType)} in ${listing.location}`,
-          url,
-        });
-        return;
-      } catch {
-        // Fall through to clipboard
-      }
-    }
-    // Fallback: copy to clipboard
-    try {
-      await navigator.clipboard.writeText(url);
-      setCopied(true);
-      toast.success('Link copied!', { description: url });
-      setTimeout(() => setCopied(false), 2500);
-    } catch {
-      toast.error('Could not copy link');
-    }
-  };
-
-  return (
-    <Button variant="outline" size="sm" onClick={handleShare} className="gap-2">
-      {copied ? (
-        <>
-          <CheckCircle className="w-4 h-4 text-emerald-500" />
-          Copied!
-        </>
-      ) : (
-        <>
-          <Share2 className="w-4 h-4" />
-          Share
-        </>
-      )}
-    </Button>
   );
 }
 
@@ -263,19 +240,14 @@ function ShareButton({ listing }: { listing: Listing }) {
 function LoadingSkeleton() {
   return (
     <div className="p-5 md:p-6 space-y-5">
-      <div className="flex items-center gap-3">
-        <Skeleton className="h-8 w-8 rounded-lg" />
-        <Skeleton className="h-5 w-48" />
-      </div>
+      <Skeleton className="h-6 w-32" />
       <Skeleton className="aspect-video rounded-2xl" />
       <div className="space-y-2">
         <Skeleton className="h-7 w-3/4" />
         <Skeleton className="h-4 w-32" />
       </div>
       <div className="space-y-1.5">
-        {Array.from({ length: 5 }).map((_, i) => (
-          <Skeleton key={i} className="h-9 w-full" />
-        ))}
+        {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-9 w-full" />)}
       </div>
     </div>
   );
@@ -286,23 +258,16 @@ function LoadingSkeleton() {
 export default function ViewListing() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const [shareOpen, setShareOpen] = useState(false);
 
-  const {
-    data: listing,
-    isLoading,
-    isError,
-  } = useQuery({
+  const { data: listing, isLoading, isError } = useQuery({
     queryKey: ['listing', id],
     queryFn: () => api.get<Listing>(`/api/listings/${id}`),
     enabled: !!id,
   });
 
   if (isLoading) {
-    return (
-      <DashboardLayout title="Listing">
-        <LoadingSkeleton />
-      </DashboardLayout>
-    );
+    return <DashboardLayout title="Listing"><LoadingSkeleton /></DashboardLayout>;
   }
 
   if (isError || !listing) {
@@ -321,10 +286,7 @@ export default function ViewListing() {
 
   const galleryItems: GalleryItem[] = [
     ...listing.images.map((url) => ({ url, type: 'image' as const })),
-    ...((listing as Listing & { videos?: string[] }).videos ?? []).map((url) => ({
-      url,
-      type: 'video' as const,
-    })),
+    ...listing.videos.map((url) => ({ url, type: 'video' as const })),
   ];
 
   const createdDate = new Date(listing.createdAt).toLocaleDateString('en-KE', {
@@ -336,27 +298,15 @@ export default function ViewListing() {
   return (
     <DashboardLayout title={listing.title}>
       <div className="p-5 md:p-6 max-w-4xl mx-auto space-y-6">
-        {/* Top bar */}
-        <div className="flex items-center justify-between gap-3 flex-wrap">
-          <button
-            onClick={() => navigate('/dashboard/agent/listings')}
-            className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            All Listings
-          </button>
-          <div className="flex items-center gap-2">
-            <ShareButton listing={listing} />
-            <Button
-              size="sm"
-              className="gap-2"
-              onClick={() => navigate(`/dashboard/agent/listings/edit/${listing.id}`)}
-            >
-              <Pencil className="w-4 h-4" />
-              Edit Listing
-            </Button>
-          </div>
-        </div>
+
+        {/* Top nav */}
+        <button
+          onClick={() => navigate('/dashboard/agent/listings')}
+          className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          All Listings
+        </button>
 
         {/* Gallery */}
         <Gallery items={galleryItems} />
@@ -371,7 +321,7 @@ export default function ViewListing() {
               <h1 className="font-display text-xl md:text-2xl font-bold text-foreground leading-tight">
                 {listing.title}
               </h1>
-              <div className="flex items-center gap-1.5 text-muted-foreground">
+              <div className="flex items-center gap-1.5 text-muted-foreground flex-wrap">
                 <MapPin className="w-4 h-4 flex-shrink-0" />
                 <span className="text-sm">{listing.location}</span>
                 {listing.nearbyLandmarks.length > 0 && (
@@ -443,15 +393,15 @@ export default function ViewListing() {
           )}
         </div>
 
+        {/* Body grid */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Left — description + amenities */}
+
+          {/* Left column */}
           <div className="lg:col-span-2 space-y-5">
             {/* Description */}
             <div className="space-y-2">
               <h2 className="font-display font-semibold text-base text-foreground">Description</h2>
-              <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-line">
-                {listing.description}
-              </p>
+              <Description text={listing.description} />
             </div>
 
             {/* Amenities */}
@@ -491,38 +441,23 @@ export default function ViewListing() {
             )}
           </div>
 
-          {/* Right — details + commission */}
+          {/* Right column */}
           <div className="space-y-4">
-            {/* Details */}
+            {/* Listing Details */}
             <div className="bg-card border border-border rounded-xl overflow-hidden">
               <div className="px-4 py-3 border-b border-border bg-muted/30">
-                <h2 className="font-display font-semibold text-sm text-foreground">
-                  Listing Details
-                </h2>
+                <h2 className="font-display font-semibold text-sm text-foreground">Listing Details</h2>
               </div>
               <div className="px-4">
                 <InfoRow label="Status" value={<StatusBadge status={listing.status} />} />
-                <InfoRow
-                  label="Listing Type"
-                  value={listing.listingType === 'RENTAL' ? 'For Rent' : 'For Sale'}
-                />
-                <InfoRow label="Property Type" value={toTitleCase(listing.propertyType)} />
-                <InfoRow
-                  label="Nature"
-                  value={listing.nature === 'MIXED' ? 'Mixed Use' : toTitleCase(listing.nature)}
-                />
+                <InfoRow label="Type" value={listing.listingType === 'RENTAL' ? 'For Rent' : 'For Sale'} />
+                <InfoRow label="Property" value={toTitleCase(listing.propertyType)} />
+                <InfoRow label="Nature" value={listing.nature === 'MIXED' ? 'Mixed Use' : toTitleCase(listing.nature)} />
                 <InfoRow label="Location" value={listing.location} />
-                <InfoRow
-                  label="Created"
-                  value={createdDate}
-                />
+                <InfoRow label="Created" value={createdDate} />
                 <InfoRow
                   label="Listing #"
-                  value={
-                    <span className="font-mono">
-                      #{String(listing.listingNumber).padStart(6, '0')}
-                    </span>
-                  }
+                  value={<span className="font-mono">#{String(listing.listingNumber).padStart(6, '0')}</span>}
                 />
               </div>
             </div>
@@ -537,9 +472,7 @@ export default function ViewListing() {
                 <button
                   type="button"
                   onClick={async () => {
-                    await navigator.clipboard.writeText(
-                      `https://hauzisha.co.ke/listings/${listing.slug}`
-                    );
+                    await navigator.clipboard.writeText(`https://hauzisha.co.ke/listings/${listing.slug}`);
                     toast.success('URL copied');
                   }}
                   className="flex-shrink-0 text-muted-foreground hover:text-foreground"
@@ -551,9 +484,36 @@ export default function ViewListing() {
 
             {/* Commission */}
             <CommissionCard listing={listing} />
+
+            {/* Actions — below commission */}
+            <div className="space-y-2 pt-1">
+              <Button
+                className="w-full gap-2"
+                variant="outline"
+                onClick={() => setShareOpen(true)}
+              >
+                <Share2 className="w-4 h-4" />
+                Share Listing
+              </Button>
+              <Button
+                className="w-full gap-2"
+                onClick={() => navigate(`/dashboard/agent/listings/edit/${listing.id}`)}
+              >
+                <Pencil className="w-4 h-4" />
+                Edit Listing
+              </Button>
+            </div>
           </div>
         </div>
       </div>
+
+      {/* Share panel (bottom sheet) */}
+      <SharePanel
+        open={shareOpen}
+        onClose={() => setShareOpen(false)}
+        listingId={listing.id}
+        listingTitle={listing.title}
+      />
     </DashboardLayout>
   );
 }
