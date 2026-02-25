@@ -147,10 +147,10 @@ function ListingDetailDialog({
 }) {
   return (
     <Dialog open onOpenChange={() => onClose()}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto p-0 gap-0">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto p-0 gap-0 overflow-hidden">
 
-        {/* Hero image — clean, no overlapping text */}
-        <div className="relative w-full h-52 sm:h-64 bg-muted overflow-hidden rounded-t-xl flex-shrink-0">
+        {/* Hero image — flush to all edges, no padding, close button floats above */}
+        <div className="relative w-full h-48 sm:h-60 bg-muted flex-shrink-0">
           {listing.images.length > 0 ? (
             <img
               src={listing.images[0]}
@@ -158,16 +158,13 @@ function ListingDetailDialog({
               className="w-full h-full object-cover"
             />
           ) : (
-            <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-muted to-muted/40">
-              <Building2 className="w-14 h-14 text-muted-foreground/20" />
+            <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-muted to-muted/50">
+              <Building2 className="w-14 h-14 text-muted-foreground/15" />
             </div>
           )}
-          {/* Minimal gradient at bottom so title is readable */}
-          <div className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-black/60 to-transparent" />
-          {/* Image count pill if multiple */}
           {listing.images.length > 1 && (
-            <div className="absolute bottom-3 right-3 bg-black/50 backdrop-blur-sm text-white text-xs px-2 py-0.5 rounded-full">
-              1 / {listing.images.length}
+            <div className="absolute bottom-3 left-3 bg-black/50 backdrop-blur-sm text-white text-xs px-2.5 py-1 rounded-full">
+              1 / {listing.images.length} photos
             </div>
           )}
         </div>
