@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -11,11 +11,17 @@ import {
   BedDouble,
   Bath,
   Square,
+  MoreVertical,
+  Share2,
+  Pencil,
+  Copy,
 } from 'lucide-react';
+import { toast } from 'sonner';
 import { DashboardLayout } from '@/components/dashboard/DashboardLayout';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
+import { SharePanel } from '@/components/listings/SharePanel';
 import { api } from '@/lib/api';
 import type { Listing } from '@/lib/types';
 import { cn } from '@/lib/utils';
@@ -62,7 +68,68 @@ function ListingTypePill({ listingType }: { listingType: Listing['listingType'] 
   );
 }
 
-function ListingCard({ listing, onClick }: { listing: Listing; onClick: () => void }) {
+function CardMenu({
+  listing,
+  onShare,
+}: {
+  listing: Listing;
+  onShare: () => void;
+}) {
+  const navigate = useNavigate();
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  const close = () => setOpen(false);
+
+  return (
+    <div ref={ref} className="relative" onClick={(e) => e.stopPropagation()}>
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="w-6 h-6 flex items-center justify-center rounded text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+      >
+        <MoreVertical className="w-3.5 h-3.5" />
+      </button>
+      {open && (
+        <>
+          <div className="fixed inset-0 z-40" onClick={close} />
+          <div className="absolute top-full right-0 mt-1 z-50 w-44 bg-popover border border-border rounded-xl shadow-lg overflow-hidden py-1">
+            <button
+              type="button"
+              onClick={() => { onShare(); close(); }}
+              className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium text-foreground hover:bg-muted transition-colors text-left"
+            >
+              <Share2 className="w-3.5 h-3.5 text-muted-foreground" />
+              Share Listing
+            </button>
+            <button
+              type="button"
+              onClick={async () => {
+                await navigator.clipboard.writeText(`https://hauzisha.co.ke/listings/${listing.slug}`);
+                toast.success('URL copied');
+                close();
+              }}
+              className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium text-foreground hover:bg-muted transition-colors text-left"
+            >
+              <Copy className="w-3.5 h-3.5 text-muted-foreground" />
+              Copy URL
+            </button>
+            <div className="my-1 border-t border-border" />
+            <button
+              type="button"
+              onClick={() => { navigate(`/dashboard/agent/listings/edit/${listing.id}`); close(); }}
+              className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium text-foreground hover:bg-muted transition-colors text-left"
+            >
+              <Pencil className="w-3.5 h-3.5 text-muted-foreground" />
+              Edit Listing
+            </button>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+function ListingCard({ listing, onClick, onShare }: { listing: Listing; onClick: () => void; onShare: () => void }) {
   const hasImage = listing.images.length > 0;
   const visibleAmenities = listing.amenities.slice(0, 3);
   const extraAmenities = listing.amenities.length - 3;
@@ -94,9 +161,12 @@ function ListingCard({ listing, onClick }: { listing: Listing; onClick: () => vo
 
       {/* Card body */}
       <div className="p-4 space-y-2">
-        <p className="text-[11px] text-muted-foreground font-mono">
-          #{String(listing.listingNumber).padStart(6, '0')}
-        </p>
+        <div className="flex items-center justify-between">
+          <p className="text-[11px] text-muted-foreground font-mono">
+            #{String(listing.listingNumber).padStart(6, '0')}
+          </p>
+          <CardMenu listing={listing} onShare={onShare} />
+        </div>
         <h3 className="font-display font-semibold text-sm leading-tight line-clamp-2 text-foreground">
           {listing.title}
         </h3>
@@ -207,6 +277,7 @@ const FILTER_TABS: { label: string; value: FilterTab }[] = [
 export default function AgentListings() {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<FilterTab>('all');
+  const [shareListing, setShareListing] = useState<Listing | null>(null);
   const { data: listings = [], isLoading } = useQuery({
     queryKey: ['agent-listings'],
     queryFn: () => api.get<Listing[]>('/api/listings/agent'),
@@ -331,12 +402,21 @@ export default function AgentListings() {
                 key={listing.id}
                 listing={listing}
                 onClick={() => navigate(`/dashboard/agent/listings/${listing.id}`)}
+                onShare={() => setShareListing(listing)}
               />
             ))}
           </div>
         )}
       </div>
 
+      {shareListing && (
+        <SharePanel
+          open={!!shareListing}
+          onClose={() => setShareListing(null)}
+          listingId={shareListing.id}
+          listingTitle={shareListing.title}
+        />
+      )}
     </DashboardLayout>
   );
 }
