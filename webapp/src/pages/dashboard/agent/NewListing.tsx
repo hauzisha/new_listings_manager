@@ -443,8 +443,6 @@ function SuccessDialog({
 
 export default function NewListing() {
   const navigate = useNavigate();
-  const [createdListing, setCreatedListing] = useState<Listing | null>(null);
-  const [showSuccess, setShowSuccess] = useState(false);
   const [uploadedImages, setUploadedImages] = useState<string[]>([]);
   const [uploadedVideos, setUploadedVideos] = useState<string[]>([]);
   const [uploadedDefaultMedia, setUploadedDefaultMedia] = useState<string>('');
@@ -511,8 +509,7 @@ export default function NewListing() {
       api.post<Listing>('/api/listings', { ...data, images: uploadedImages, videos: uploadedVideos, defaultMedia: uploadedDefaultMedia }),
     onSuccess: (listing) => {
       toast.success('Listing created!', { description: 'Your listing is now live.' });
-      setCreatedListing(listing);
-      setShowSuccess(true);
+      navigate(`/dashboard/agent/listings/${listing.id}`);
     },
     onError: (err: unknown) => {
       const msg = err instanceof Error ? err.message : 'Something went wrong';
@@ -540,15 +537,6 @@ export default function NewListing() {
     } finally {
       setIsGenerating(false);
     }
-  };
-
-  const handleCreateAnother = () => {
-    reset();
-    setTotalCommissionPct('');
-    setShowSuccess(false);
-    setCreatedListing(null);
-    setUploadedImages([]);
-    setUploadedVideos([]);
   };
 
   const toggleAmenity = (amenity: string, current: string[]) => {
@@ -1133,16 +1121,6 @@ export default function NewListing() {
           </div>
         </form>
       </div>
-
-      {/* Success dialog */}
-      <SuccessDialog
-        open={showSuccess}
-        listing={createdListing}
-        onViewAll={() => createdListing
-          ? navigate(`/dashboard/agent/listings/${createdListing.id}`)
-          : navigate('/dashboard/agent/listings')}
-        onCreateAnother={handleCreateAnother}
-      />
     </DashboardLayout>
   );
 }

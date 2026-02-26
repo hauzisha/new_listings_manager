@@ -385,6 +385,7 @@ export default function EditListing() {
       toast.success('Listing updated');
       queryClient.invalidateQueries({ queryKey: ['listing', id] });
       queryClient.invalidateQueries({ queryKey: ['agent-listings'] });
+      navigate(`/dashboard/agent/listings/${id}`);
     },
     onError: (err: unknown) => {
       const msg = err instanceof Error ? err.message : 'Something went wrong';
