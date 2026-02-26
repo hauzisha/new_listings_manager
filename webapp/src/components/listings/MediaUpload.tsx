@@ -54,9 +54,6 @@ function ThumbnailMenu({
   const [open, setOpen] = useState(false);
   const close = () => setOpen(false);
 
-  // Nothing to show: already default and no rotate
-  if (isDefault && !showRotate) return null;
-
   return (
     <div className="relative" onClick={(e) => e.stopPropagation()}>
       <button
@@ -70,7 +67,12 @@ function ThumbnailMenu({
         <>
           <div className="fixed inset-0 z-40" onClick={close} />
           <div className="absolute bottom-full right-0 mb-1.5 z-50 w-44 bg-popover border border-border rounded-xl shadow-lg overflow-hidden py-1">
-            {!isDefault && (
+            {isDefault ? (
+              <div className="flex items-center gap-2 px-3 py-2 text-xs font-medium text-amber-600">
+                <Star className="w-3.5 h-3.5 fill-amber-500 text-amber-500" />
+                Current Default
+              </div>
+            ) : (
               <button
                 type="button"
                 onClick={() => { onSetDefault(); close(); }}
