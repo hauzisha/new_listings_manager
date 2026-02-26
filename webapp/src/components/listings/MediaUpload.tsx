@@ -60,8 +60,8 @@ function ThumbnailMenu({
   const [open, setOpen] = useState(false);
   const close = () => setOpen(false);
 
-  if (!isImage && isDefault) return null;
-  if (isDefault && !isImage) return null;
+  // Hide menu if there's nothing to show (default image without rotate option)
+  if (isDefault && !onRotate) return null;
 
   return (
     <div className="relative" onClick={(e) => e.stopPropagation()}>
@@ -192,7 +192,7 @@ function MediaThumbnail({
       )}
 
       {/* 3-dot menu — bottom right on hover */}
-      {!disabled && (isDefault ? type === 'image' : true) && (
+      {!disabled && (
         <div className="absolute bottom-1.5 right-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
           <ThumbnailMenu
             isDefault={isDefault}
@@ -327,11 +327,19 @@ export function MediaUpload({
 
   // ── Set default (move to index 0) ───────────────────────────────────────────
   const handleSetDefault = (i: number) => {
-    const updated = [...allMedia];
-    const [moved] = updated.splice(i, 1);
-    updated.unshift(moved);
-    onImagesChange(updated.filter((m) => m.type === 'image').map((m) => m.url));
-    onVideosChange(updated.filter((m) => m.type === 'video').map((m) => m.url));
+    const item = allMedia[i];
+    if (item.type === 'image') {
+      // Promote image to front of images array
+      const newImages = [item.url, ...images.filter((u) => u !== item.url)];
+      onImagesChange(newImages);
+    } else {
+      // Promote video: move it to images[0] and remove from videos
+      // so the gallery cover is always images[0]
+      const newImages = [item.url, ...images];
+      const newVideos = videos.filter((u) => u !== item.url);
+      onImagesChange(newImages);
+      onVideosChange(newVideos);
+    }
     toast.success('Set as default');
   };
 
