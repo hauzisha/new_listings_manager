@@ -10,24 +10,20 @@ import {
   Bath,
   Square,
   CheckCircle,
-  Copy,
-  ChevronLeft,
-  ChevronRight,
-  Film,
   Building2,
   ChevronDown,
   ChevronUp,
 } from 'lucide-react';
-import { toast } from 'sonner';
 import { DashboardLayout } from '@/components/dashboard/DashboardLayout';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { SharePanel } from '@/components/listings/SharePanel';
+import { MediaManager } from '@/components/listings/MediaManager';
 import { api } from '@/lib/api';
 import type { Listing } from '@/lib/types';
 import { cn } from '@/lib/utils';
 
-// ─── Helpers ────────────────────────────────────────────────────────────────────
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 
 const DESCRIPTION_TRUNCATE = 280;
 
@@ -62,88 +58,6 @@ function StatusBadge({ status }: { status: Listing['status'] }) {
   );
 }
 
-// ─── Gallery ─────────────────────────────────────────────────────────────────
-
-interface GalleryItem {
-  url: string;
-  type: 'image' | 'video';
-}
-
-function Gallery({ items }: { items: GalleryItem[] }) {
-  const [current, setCurrent] = useState(0);
-
-  if (items.length === 0) {
-    return (
-      <div className="aspect-video rounded-2xl bg-muted flex items-center justify-center border border-border">
-        <div className="text-center">
-          <Building2 className="w-12 h-12 text-muted-foreground/30 mx-auto mb-2" />
-          <p className="text-sm text-muted-foreground">No photos added yet</p>
-        </div>
-      </div>
-    );
-  }
-
-  const item = items[current];
-
-  return (
-    <div className="space-y-3">
-      <div className="relative rounded-2xl overflow-hidden aspect-video bg-black">
-        {item.type === 'image' ? (
-          <img src={item.url} alt={`Media ${current + 1}`} className="w-full h-full object-cover" />
-        ) : (
-          <video src={item.url} controls className="w-full h-full object-contain" />
-        )}
-        {items.length > 1 && (
-          <>
-            <button
-              onClick={() => setCurrent((c) => (c === 0 ? items.length - 1 : c - 1))}
-              className="absolute left-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-black/50 hover:bg-black/70 text-white flex items-center justify-center transition-colors"
-            >
-              <ChevronLeft className="w-5 h-5" />
-            </button>
-            <button
-              onClick={() => setCurrent((c) => (c === items.length - 1 ? 0 : c + 1))}
-              className="absolute right-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-black/50 hover:bg-black/70 text-white flex items-center justify-center transition-colors"
-            >
-              <ChevronRight className="w-5 h-5" />
-            </button>
-          </>
-        )}
-        <div className="absolute bottom-3 right-3 bg-black/60 text-white text-xs font-medium px-2.5 py-1 rounded-full">
-          {current + 1} / {items.length}
-        </div>
-        {item.type === 'video' && (
-          <div className="absolute top-3 left-3 bg-black/60 text-white text-xs font-medium px-2 py-1 rounded flex items-center gap-1.5">
-            <Film className="w-3.5 h-3.5" /> Video
-          </div>
-        )}
-      </div>
-      {items.length > 1 && (
-        <div className="flex gap-2 overflow-x-auto pb-1">
-          {items.map((it, i) => (
-            <button
-              key={i}
-              onClick={() => setCurrent(i)}
-              className={cn(
-                'flex-shrink-0 w-16 h-12 rounded-lg overflow-hidden border-2 transition-all',
-                i === current ? 'border-primary' : 'border-border opacity-60 hover:opacity-100'
-              )}
-            >
-              {it.type === 'image' ? (
-                <img src={it.url} alt="" className="w-full h-full object-cover" />
-              ) : (
-                <div className="w-full h-full bg-muted flex items-center justify-center">
-                  <Film className="w-4 h-4 text-muted-foreground" />
-                </div>
-              )}
-            </button>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
 // ─── Description with truncation ─────────────────────────────────────────────
 
 function Description({ text }: { text: string }) {
@@ -164,13 +78,9 @@ function Description({ text }: { text: string }) {
           className="flex items-center gap-1 text-xs font-semibold text-primary hover:text-primary/80 transition-colors"
         >
           {expanded ? (
-            <>
-              <ChevronUp className="w-3.5 h-3.5" /> Show less
-            </>
+            <><ChevronUp className="w-3.5 h-3.5" /> Show less</>
           ) : (
-            <>
-              <ChevronDown className="w-3.5 h-3.5" /> See more
-            </>
+            <><ChevronDown className="w-3.5 h-3.5" /> See more</>
           )}
         </button>
       )}
@@ -189,7 +99,7 @@ function InfoRow({ label, value }: { label: string; value: React.ReactNode }) {
   );
 }
 
-// ─── Commission Card ─────────────────────────────────────────────────────────
+// ─── Commission Card ──────────────────────────────────────────────────────────
 
 function CommissionCard({ listing }: { listing: Listing }) {
   const { price, agentCommissionPct, promoterCommissionPct, companyCommissionPct } = listing;
@@ -247,13 +157,15 @@ function LoadingSkeleton() {
         <Skeleton className="h-4 w-32" />
       </div>
       <div className="space-y-1.5">
-        {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-9 w-full" />)}
+        {Array.from({ length: 4 }).map((_, i) => (
+          <Skeleton key={i} className="h-9 w-full" />
+        ))}
       </div>
     </div>
   );
 }
 
-// ─── Main Component ─────────────────────────────────────────────────────────────
+// ─── Main Component ───────────────────────────────────────────────────────────
 
 export default function ViewListing() {
   const { id } = useParams<{ id: string }>();
@@ -284,11 +196,6 @@ export default function ViewListing() {
     );
   }
 
-  const galleryItems: GalleryItem[] = [
-    ...listing.images.map((url) => ({ url, type: 'image' as const })),
-    ...listing.videos.map((url) => ({ url, type: 'video' as const })),
-  ];
-
   const createdDate = new Date(listing.createdAt).toLocaleDateString('en-KE', {
     year: 'numeric',
     month: 'long',
@@ -308,8 +215,13 @@ export default function ViewListing() {
           All Listings
         </button>
 
-        {/* Gallery */}
-        <Gallery items={galleryItems} />
+        {/* Media gallery with management controls */}
+        <MediaManager
+          listingId={listing.id}
+          images={listing.images}
+          videos={listing.videos}
+          editable
+        />
 
         {/* Header block */}
         <div className="space-y-3">
@@ -398,13 +310,11 @@ export default function ViewListing() {
 
           {/* Left column */}
           <div className="lg:col-span-2 space-y-5">
-            {/* Description */}
             <div className="space-y-2">
               <h2 className="font-display font-semibold text-base text-foreground">Description</h2>
               <Description text={listing.description} />
             </div>
 
-            {/* Amenities */}
             {listing.amenities.length > 0 && (
               <div className="space-y-2">
                 <h2 className="font-display font-semibold text-base text-foreground">Amenities</h2>
@@ -422,7 +332,6 @@ export default function ViewListing() {
               </div>
             )}
 
-            {/* Landmarks */}
             {listing.nearbyLandmarks.length > 0 && (
               <div className="space-y-2">
                 <h2 className="font-display font-semibold text-base text-foreground">Nearby</h2>
@@ -443,7 +352,6 @@ export default function ViewListing() {
 
           {/* Right column */}
           <div className="space-y-4">
-            {/* Listing Details */}
             <div className="bg-card border border-border rounded-xl overflow-hidden">
               <div className="px-4 py-3 border-b border-border bg-muted/30">
                 <h2 className="font-display font-semibold text-sm text-foreground">Listing Details</h2>
@@ -462,30 +370,8 @@ export default function ViewListing() {
               </div>
             </div>
 
-            {/* URL */}
-            <div className="bg-card border border-border rounded-xl p-4 space-y-2">
-              <p className="text-xs font-medium text-muted-foreground">Listing URL</p>
-              <div className="flex items-center gap-2">
-                <p className="text-xs font-mono text-primary truncate flex-1">
-                  hauzisha.co.ke/listings/{listing.slug}
-                </p>
-                <button
-                  type="button"
-                  onClick={async () => {
-                    await navigator.clipboard.writeText(`https://hauzisha.co.ke/listings/${listing.slug}`);
-                    toast.success('URL copied');
-                  }}
-                  className="flex-shrink-0 text-muted-foreground hover:text-foreground"
-                >
-                  <Copy className="w-3.5 h-3.5" />
-                </button>
-              </div>
-            </div>
-
-            {/* Commission */}
             <CommissionCard listing={listing} />
 
-            {/* Actions — below commission */}
             <div className="space-y-2 pt-1">
               <Button
                 className="w-full gap-2"
@@ -507,7 +393,6 @@ export default function ViewListing() {
         </div>
       </div>
 
-      {/* Share panel (bottom sheet) */}
       <SharePanel
         open={shareOpen}
         onClose={() => setShareOpen(false)}
