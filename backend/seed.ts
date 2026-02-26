@@ -2,7 +2,7 @@ import { PrismaClient } from "@prisma/client";
 import { hashPassword } from "better-auth/crypto";
 
 const prisma = new PrismaClient({
-  datasources: { db: { url: "file:./prisma/dev.db" } }
+  datasources: { db: { url: process.env.DATABASE_URL ?? "file:./prisma/prisma/dev.db" } }
 });
 
 async function main() {
