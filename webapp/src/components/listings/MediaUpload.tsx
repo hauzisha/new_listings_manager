@@ -7,12 +7,6 @@ import { cn } from '@/lib/utils';
 import { uploadFile } from '@/lib/upload';
 import { toast } from 'sonner';
 
-interface MediaFile {
-  url: string;
-  type: 'image' | 'video';
-  name: string;
-}
-
 interface MediaUploadProps {
   images: string[];
   videos: string[];
@@ -48,20 +42,20 @@ async function rotateImageUrl(url: string): Promise<string> {
 
 function ThumbnailMenu({
   isDefault,
-  isImage,
+  showRotate,
   onSetDefault,
   onRotate,
 }: {
   isDefault: boolean;
-  isImage: boolean;
+  showRotate: boolean;
   onSetDefault: () => void;
   onRotate?: () => void;
 }) {
   const [open, setOpen] = useState(false);
   const close = () => setOpen(false);
 
-  // Hide menu if there's nothing to show (default image without rotate option)
-  if (isDefault && !onRotate) return null;
+  // Nothing to show: already default and no rotate
+  if (isDefault && !showRotate) return null;
 
   return (
     <div className="relative" onClick={(e) => e.stopPropagation()}>
@@ -75,7 +69,7 @@ function ThumbnailMenu({
       {open && (
         <>
           <div className="fixed inset-0 z-40" onClick={close} />
-          <div className="absolute bottom-full right-0 mb-1.5 z-50 w-40 bg-popover border border-border rounded-xl shadow-lg overflow-hidden py-1">
+          <div className="absolute bottom-full right-0 mb-1.5 z-50 w-44 bg-popover border border-border rounded-xl shadow-lg overflow-hidden py-1">
             {!isDefault && (
               <button
                 type="button"
@@ -86,7 +80,7 @@ function ThumbnailMenu({
                 Set as Default
               </button>
             )}
-            {isImage && onRotate && (
+            {showRotate && onRotate && (
               <button
                 type="button"
                 onClick={() => { onRotate(); close(); }}
@@ -108,7 +102,6 @@ function ThumbnailMenu({
 function MediaThumbnail({
   url,
   type,
-  name,
   isDefault,
   index,
   onRemove,
@@ -121,12 +114,11 @@ function MediaThumbnail({
 }: {
   url: string;
   type: 'image' | 'video';
-  name: string;
   isDefault: boolean;
   index: number;
   onRemove: () => void;
   onSetDefault: () => void;
-  onRotate: () => void;
+  onRotate?: () => void;
   onDragStart: (i: number) => void;
   onDragEnter: (i: number) => void;
   onDragEnd: () => void;
@@ -142,7 +134,7 @@ function MediaThumbnail({
       className="relative group aspect-video rounded-lg overflow-hidden border border-border bg-muted cursor-grab active:cursor-grabbing"
     >
       {type === 'image' ? (
-        <img src={url} alt={name} className="w-full h-full object-cover" loading="lazy" />
+        <img src={url} alt="" className="w-full h-full object-cover" loading="lazy" />
       ) : (
         <div className="relative w-full h-full">
           <video src={url} className="w-full h-full object-cover" preload="metadata" />
@@ -152,7 +144,7 @@ function MediaThumbnail({
         </div>
       )}
 
-      {/* Default star badge */}
+      {/* Default badge */}
       {isDefault && (
         <div className="absolute top-1.5 left-1.5 flex items-center gap-1 bg-amber-500/90 text-white text-[10px] font-semibold px-1.5 py-0.5 rounded-full">
           <Star className="w-2.5 h-2.5 fill-white" />
@@ -160,27 +152,17 @@ function MediaThumbnail({
         </div>
       )}
 
-      {/* Type badge */}
-      {!isDefault && (
-        <div className="absolute bottom-1.5 left-1.5">
-          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-black/60 text-white flex items-center gap-1">
-            {type === 'image' ? <Image className="w-2.5 h-2.5" /> : <Film className="w-2.5 h-2.5" />}
-            {type === 'image' ? 'Photo' : 'Video'}
-          </span>
-        </div>
-      )}
-
       {/* Hover overlay */}
       <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors" />
 
-      {/* Drag handle — top left on hover */}
+      {/* Drag handle */}
       {!disabled && (
         <div className="absolute top-1.5 right-7 opacity-0 group-hover:opacity-100 transition-opacity">
           <GripVertical className="w-4 h-4 text-white drop-shadow" />
         </div>
       )}
 
-      {/* Remove button — top right on hover */}
+      {/* Remove button */}
       {!disabled && (
         <button
           type="button"
@@ -191,14 +173,14 @@ function MediaThumbnail({
         </button>
       )}
 
-      {/* 3-dot menu — bottom right on hover */}
+      {/* 3-dot menu */}
       {!disabled && (
         <div className="absolute bottom-1.5 right-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
           <ThumbnailMenu
             isDefault={isDefault}
-            isImage={type === 'image'}
+            showRotate={type === 'image'}
             onSetDefault={onSetDefault}
-            onRotate={type === 'image' ? onRotate : undefined}
+            onRotate={onRotate}
           />
         </div>
       )}
@@ -220,6 +202,89 @@ function UploadingItem({ name, progress }: { name: string; progress: number }) {
   );
 }
 
+// ─── Section: Photos or Videos ────────────────────────────────────────────────
+
+function MediaSection({
+  label,
+  icon: Icon,
+  items,
+  type,
+  disabled,
+  onReorder,
+  onSetDefault,
+  onRotate,
+  onRemove,
+  uploadingItems,
+}: {
+  label: string;
+  icon: React.ElementType;
+  items: string[];
+  type: 'image' | 'video';
+  disabled: boolean;
+  onReorder: (urls: string[]) => void;
+  onSetDefault: (index: number) => void;
+  onRotate?: (index: number) => void;
+  onRemove: (index: number) => void;
+  uploadingItems: { name: string; progress: number }[];
+}) {
+  const dragIndex = useRef<number | null>(null);
+  const dragOverIndex = useRef<number | null>(null);
+
+  const handleDragStart = (i: number) => { dragIndex.current = i; };
+  const handleDragEnter = (i: number) => { dragOverIndex.current = i; };
+  const handleDragEnd = () => {
+    const from = dragIndex.current;
+    const to = dragOverIndex.current;
+    dragIndex.current = null;
+    dragOverIndex.current = null;
+    if (from === null || to === null || from === to) return;
+    const updated = [...items];
+    const [moved] = updated.splice(from, 1);
+    updated.splice(to, 0, moved);
+    onReorder(updated);
+    toast.success('Order updated');
+  };
+
+  if (items.length === 0 && uploadingItems.length === 0) return null;
+
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center gap-1.5">
+        <Icon className="w-3.5 h-3.5 text-muted-foreground" />
+        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">{label}</p>
+        <span className="text-xs text-muted-foreground">({items.length})</span>
+      </div>
+      {items.length > 1 && (
+        <p className="text-[11px] text-muted-foreground flex items-center gap-1">
+          <GripVertical className="w-3 h-3 flex-shrink-0" />
+          Drag to reorder · hover for options
+        </p>
+      )}
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+        {items.map((url, i) => (
+          <MediaThumbnail
+            key={`${url}-${i}`}
+            url={url}
+            type={type}
+            isDefault={i === 0}
+            index={i}
+            onRemove={() => onRemove(i)}
+            onSetDefault={() => onSetDefault(i)}
+            onRotate={onRotate ? () => onRotate(i) : undefined}
+            onDragStart={handleDragStart}
+            onDragEnter={handleDragEnter}
+            onDragEnd={handleDragEnd}
+            disabled={disabled}
+          />
+        ))}
+        {uploadingItems.map((u, i) => (
+          <UploadingItem key={i} name={u.name} progress={u.progress} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
 // ─── Main component ───────────────────────────────────────────────────────────
 
 export function MediaUpload({
@@ -234,16 +299,8 @@ export function MediaUpload({
   const [uploading, setUploading] = useState<{ name: string; progress: number; type: 'image' | 'video' }[]>([]);
   const [dragOver, setDragOver] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const dragIndex = useRef<number | null>(null);
-  const dragOverIndex = useRef<number | null>(null);
 
-  // Combined ordered list
-  const allMedia: MediaFile[] = [
-    ...images.map((url) => ({ url, type: 'image' as const, name: url.split('/').pop() || 'image' })),
-    ...videos.map((url) => ({ url, type: 'video' as const, name: url.split('/').pop() || 'video' })),
-  ];
-
-  const canAddMore = images.length < maxImages || videos.length < maxVideos;
+  const hasMedia = images.length > 0 || videos.length > 0 || uploading.length > 0;
 
   // ── Upload ──────────────────────────────────────────────────────────────────
   const processFiles = useCallback(
@@ -306,68 +363,49 @@ export function MediaUpload({
     if (e.target.files?.length) { processFiles(e.target.files); e.target.value = ''; }
   };
 
-  // ── Reorder (drag) ──────────────────────────────────────────────────────────
-  const handleDragStart = (i: number) => { dragIndex.current = i; };
-  const handleDragEnter = (i: number) => { dragOverIndex.current = i; };
-  const handleDragEnd = () => {
-    const from = dragIndex.current;
-    const to = dragOverIndex.current;
-    dragIndex.current = null;
-    dragOverIndex.current = null;
-    if (from === null || to === null || from === to) return;
-
-    const updated = [...allMedia];
-    const [moved] = updated.splice(from, 1);
-    updated.splice(to, 0, moved);
-
-    onImagesChange(updated.filter((m) => m.type === 'image').map((m) => m.url));
-    onVideosChange(updated.filter((m) => m.type === 'video').map((m) => m.url));
-    toast.success('Order updated');
+  // ── Image handlers ──────────────────────────────────────────────────────────
+  const handleSetDefaultImage = (i: number) => {
+    const updated = [...images];
+    const [moved] = updated.splice(i, 1);
+    updated.unshift(moved);
+    onImagesChange(updated);
+    toast.success('Default photo set');
   };
 
-  // ── Set default (move to index 0) ───────────────────────────────────────────
-  const handleSetDefault = (i: number) => {
-    const item = allMedia[i];
-    if (item.type === 'image') {
-      // Promote image to front of images array
-      const newImages = [item.url, ...images.filter((u) => u !== item.url)];
-      onImagesChange(newImages);
-    } else {
-      // Promote video: move it to images[0] and remove from videos
-      // so the gallery cover is always images[0]
-      const newImages = [item.url, ...images];
-      const newVideos = videos.filter((u) => u !== item.url);
-      onImagesChange(newImages);
-      onVideosChange(newVideos);
-    }
-    toast.success('Set as default');
-  };
-
-  // ── Rotate ──────────────────────────────────────────────────────────────────
-  const handleRotate = async (i: number) => {
-    const item = allMedia[i];
-    if (item.type !== 'image') return;
+  const handleRotateImage = async (i: number) => {
     try {
-      const rotated = await rotateImageUrl(item.url);
-      const newImages = allMedia
-        .map((m, idx) => (m.type === 'image' ? (idx === i ? rotated : m.url) : null))
-        .filter(Boolean) as string[];
-      onImagesChange(newImages);
+      const rotated = await rotateImageUrl(images[i]);
+      const updated = [...images];
+      updated[i] = rotated;
+      onImagesChange(updated);
       toast.success('Image rotated');
     } catch {
       toast.error('Could not rotate image');
     }
   };
 
-  // ── Remove ──────────────────────────────────────────────────────────────────
-  const handleRemove = (i: number) => {
-    const item = allMedia[i];
-    if (item.type === 'image') onImagesChange(images.filter((u) => u !== item.url));
-    else onVideosChange(videos.filter((u) => u !== item.url));
+  const handleRemoveImage = (i: number) => {
+    onImagesChange(images.filter((_, idx) => idx !== i));
   };
 
+  // ── Video handlers ──────────────────────────────────────────────────────────
+  const handleSetDefaultVideo = (i: number) => {
+    const updated = [...videos];
+    const [moved] = updated.splice(i, 1);
+    updated.unshift(moved);
+    onVideosChange(updated);
+    toast.success('Default video set');
+  };
+
+  const handleRemoveVideo = (i: number) => {
+    onVideosChange(videos.filter((_, idx) => idx !== i));
+  };
+
+  const uploadingImages = uploading.filter((u) => u.type === 'image');
+  const uploadingVideos = uploading.filter((u) => u.type === 'video');
+
   return (
-    <div className="space-y-3">
+    <div className="space-y-4">
       {/* Drop zone */}
       <div
         onDrop={(e) => { e.preventDefault(); setDragOver(false); if (!disabled && e.dataTransfer.files.length) processFiles(e.dataTransfer.files); }}
@@ -412,45 +450,39 @@ export function MediaUpload({
         </div>
       </div>
 
-      {allMedia.length === 0 && uploading.length === 0 && (
+      {!hasMedia && (
         <p className="text-xs text-muted-foreground flex items-center gap-1.5">
           <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />
-          Images are compressed automatically. Drag thumbnails to reorder.
+          Images are compressed automatically. The first photo/video in each section is the default.
         </p>
       )}
 
-      {(allMedia.length > 0 || uploading.length > 0) && (
-        <>
-          {allMedia.length > 1 && (
-            <p className="text-xs text-muted-foreground flex items-center gap-1.5">
-              <GripVertical className="w-3.5 h-3.5 flex-shrink-0" />
-              Drag to reorder · hover an image for more options
-            </p>
-          )}
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-            {allMedia.map((m, i) => (
-              <MediaThumbnail
-                key={`${m.url}-${i}`}
-                url={m.url}
-                type={m.type}
-                name={m.name}
-                isDefault={i === 0}
-                index={i}
-                onRemove={() => handleRemove(i)}
-                onSetDefault={() => handleSetDefault(i)}
-                onRotate={() => handleRotate(i)}
-                onDragStart={handleDragStart}
-                onDragEnter={handleDragEnter}
-                onDragEnd={handleDragEnd}
-                disabled={disabled}
-              />
-            ))}
-            {uploading.map((u, i) => (
-              <UploadingItem key={i} name={u.name} progress={u.progress} />
-            ))}
-          </div>
-        </>
-      )}
+      {/* Photos section */}
+      <MediaSection
+        label="Photos"
+        icon={Image}
+        items={images}
+        type="image"
+        disabled={disabled}
+        onReorder={onImagesChange}
+        onSetDefault={handleSetDefaultImage}
+        onRotate={handleRotateImage}
+        onRemove={handleRemoveImage}
+        uploadingItems={uploadingImages}
+      />
+
+      {/* Videos section */}
+      <MediaSection
+        label="Videos"
+        icon={Film}
+        items={videos}
+        type="video"
+        disabled={disabled}
+        onReorder={onVideosChange}
+        onSetDefault={handleSetDefaultVideo}
+        onRemove={handleRemoveVideo}
+        uploadingItems={uploadingVideos}
+      />
     </div>
   );
 }
