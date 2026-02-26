@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import {
@@ -13,7 +13,10 @@ import {
   Building2,
   ChevronDown,
   ChevronUp,
+  MoreVertical,
+  Copy,
 } from 'lucide-react';
+import { toast } from 'sonner';
 import { DashboardLayout } from '@/components/dashboard/DashboardLayout';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -34,6 +37,67 @@ function formatPrice(price: number, listingType: Listing['listingType']) {
 
 function toTitleCase(s: string) {
   return s.charAt(0) + s.slice(1).toLowerCase();
+}
+
+// ─── Listing 3-dot menu ───────────────────────────────────────────────────────
+
+function ListingMenu({
+  onShare,
+  onCopyUrl,
+  onEdit,
+}: {
+  onShare: () => void;
+  onCopyUrl: () => void;
+  onEdit: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  const close = () => setOpen(false);
+
+  return (
+    <div ref={ref} className="relative" onClick={(e) => e.stopPropagation()}>
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="w-7 h-7 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+        title="Listing options"
+      >
+        <MoreVertical className="w-4 h-4" />
+      </button>
+      {open && (
+        <>
+          <div className="fixed inset-0 z-40" onClick={close} />
+          <div className="absolute top-full left-0 mt-1 z-50 w-48 bg-popover border border-border rounded-xl shadow-lg overflow-hidden py-1">
+            <button
+              type="button"
+              onClick={() => { onShare(); close(); }}
+              className="w-full flex items-center gap-2.5 px-3 py-2.5 text-sm font-medium text-foreground hover:bg-muted transition-colors text-left"
+            >
+              <Share2 className="w-4 h-4 text-muted-foreground" />
+              Share Listing
+            </button>
+            <button
+              type="button"
+              onClick={() => { onCopyUrl(); close(); }}
+              className="w-full flex items-center gap-2.5 px-3 py-2.5 text-sm font-medium text-foreground hover:bg-muted transition-colors text-left"
+            >
+              <Copy className="w-4 h-4 text-muted-foreground" />
+              Copy URL
+            </button>
+            <div className="my-1 border-t border-border" />
+            <button
+              type="button"
+              onClick={() => { onEdit(); close(); }}
+              className="w-full flex items-center gap-2.5 px-3 py-2.5 text-sm font-medium text-foreground hover:bg-muted transition-colors text-left"
+            >
+              <Pencil className="w-4 h-4 text-muted-foreground" />
+              Edit Listing
+            </button>
+          </div>
+        </>
+      )}
+    </div>
+  );
 }
 
 // ─── Status Badge ─────────────────────────────────────────────────────────────
@@ -227,9 +291,19 @@ export default function ViewListing() {
         <div className="space-y-3">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div className="space-y-1">
-              <p className="text-xs font-mono text-muted-foreground">
-                #{String(listing.listingNumber).padStart(6, '0')}
-              </p>
+              <div className="flex items-center gap-2">
+                <p className="text-xs font-mono text-muted-foreground">
+                  #{String(listing.listingNumber).padStart(6, '0')}
+                </p>
+                <ListingMenu
+                  onShare={() => setShareOpen(true)}
+                  onCopyUrl={async () => {
+                    await navigator.clipboard.writeText(`https://hauzisha.co.ke/listings/${listing.slug}`);
+                    toast.success('URL copied');
+                  }}
+                  onEdit={() => navigate(`/dashboard/agent/listings/edit/${listing.id}`)}
+                />
+              </div>
               <h1 className="font-display text-xl md:text-2xl font-bold text-foreground leading-tight">
                 {listing.title}
               </h1>
@@ -371,24 +445,6 @@ export default function ViewListing() {
             </div>
 
             <CommissionCard listing={listing} />
-
-            <div className="space-y-2 pt-1">
-              <Button
-                className="w-full gap-2"
-                variant="outline"
-                onClick={() => setShareOpen(true)}
-              >
-                <Share2 className="w-4 h-4" />
-                Share Listing
-              </Button>
-              <Button
-                className="w-full gap-2"
-                onClick={() => navigate(`/dashboard/agent/listings/edit/${listing.id}`)}
-              >
-                <Pencil className="w-4 h-4" />
-                Edit Listing
-              </Button>
-            </div>
           </div>
         </div>
       </div>

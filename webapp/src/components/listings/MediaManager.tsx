@@ -16,13 +16,9 @@ import {
   MoreVertical,
   Star,
   RotateCw,
-  Copy,
-  Pencil,
   GripVertical,
-  Check,
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { useNavigate } from 'react-router-dom';
 import { api } from '@/lib/api';
 import { cn } from '@/lib/utils';
 
@@ -71,15 +67,11 @@ function ThumbnailMenu({
   isDefault,
   isImage,
   onSetDefault,
-  onCopyUrl,
-  onEditListing,
   onRotate,
 }: {
   isDefault: boolean;
   isImage: boolean;
   onSetDefault: () => void;
-  onCopyUrl: () => void;
-  onEditListing: () => void;
   onRotate?: () => void;
 }) {
   const [open, setOpen] = useState(false);
@@ -100,9 +92,8 @@ function ThumbnailMenu({
 
       {open && (
         <>
-          {/* Backdrop */}
           <div className="fixed inset-0 z-40" onClick={close} />
-          <div className="absolute bottom-full right-0 mb-1.5 z-50 w-44 bg-popover border border-border rounded-xl shadow-lg overflow-hidden py-1">
+          <div className="absolute bottom-full right-0 mb-1.5 z-50 w-40 bg-popover border border-border rounded-xl shadow-lg overflow-hidden py-1">
             {!isDefault && (
               <MenuItem
                 icon={<Star className="w-3.5 h-3.5" />}
@@ -117,17 +108,6 @@ function ThumbnailMenu({
                 onClick={() => { onRotate(); close(); }}
               />
             )}
-            <MenuItem
-              icon={<Copy className="w-3.5 h-3.5" />}
-              label="Copy URL"
-              onClick={() => { onCopyUrl(); close(); }}
-            />
-            <div className="my-1 border-t border-border" />
-            <MenuItem
-              icon={<Pencil className="w-3.5 h-3.5" />}
-              label="Edit Listing"
-              onClick={() => { onEditListing(); close(); }}
-            />
           </div>
         </>
       )}
@@ -159,7 +139,6 @@ function MenuItem({
 // ─── Main component ───────────────────────────────────────────────────────────
 
 export function MediaManager({ listingId, images, videos, editable = false }: MediaManagerProps) {
-  const navigate = useNavigate();
   const queryClient = useQueryClient();
 
   // Build ordered media list
@@ -169,7 +148,6 @@ export function MediaManager({ listingId, images, videos, editable = false }: Me
   ]);
   const [current, setCurrent] = useState(0);
   const [savingIndex, setSavingIndex] = useState<number | null>(null);
-  const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
 
   // Drag state
   const dragIndex = useRef<number | null>(null);
@@ -220,18 +198,6 @@ export function MediaManager({ listingId, images, videos, editable = false }: Me
       toast.success('Image rotated');
     } catch {
       toast.error('Could not rotate image');
-    }
-  };
-
-  // ── Copy URL ───────────────────────────────────────────────────────────────
-  const handleCopyUrl = async (idx: number) => {
-    try {
-      await navigator.clipboard.writeText(items[idx].url);
-      setCopiedIndex(idx);
-      toast.success('URL copied');
-      setTimeout(() => setCopiedIndex(null), 2000);
-    } catch {
-      toast.error('Could not copy URL');
     }
   };
 
@@ -363,13 +329,6 @@ export function MediaManager({ listingId, images, videos, editable = false }: Me
                 </div>
               )}
 
-              {/* Copied indicator */}
-              {copiedIndex === i && (
-                <div className="absolute inset-0 rounded-[6px] bg-black/60 flex items-center justify-center">
-                  <Check className="w-4 h-4 text-white" />
-                </div>
-              )}
-
               {/* Saving indicator */}
               {savingIndex === i && (
                 <div className="absolute inset-0 rounded-[6px] bg-black/40 flex items-center justify-center">
@@ -392,8 +351,6 @@ export function MediaManager({ listingId, images, videos, editable = false }: Me
                     isImage={it.type === 'image'}
                     onSetDefault={() => handleSetDefault(i)}
                     onRotate={it.type === 'image' ? () => handleRotate(i) : undefined}
-                    onCopyUrl={() => handleCopyUrl(i)}
-                    onEditListing={() => navigate(`/dashboard/agent/listings/edit/${listingId}`)}
                   />
                 </div>
               )}
@@ -410,8 +367,6 @@ export function MediaManager({ listingId, images, videos, editable = false }: Me
             isImage={items[0].type === 'image'}
             onSetDefault={() => {}}
             onRotate={items[0].type === 'image' ? () => handleRotate(0) : undefined}
-            onCopyUrl={() => handleCopyUrl(0)}
-            onEditListing={() => navigate(`/dashboard/agent/listings/edit/${listingId}`)}
           />
         </div>
       )}
