@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import {
   Share2,
@@ -524,7 +524,21 @@ interface SharePanelProps {
   listingTitle: string;
 }
 
+function useIsDesktop() {
+  const [isDesktop, setIsDesktop] = useState(() =>
+    typeof window !== 'undefined' ? window.innerWidth >= 768 : false
+  );
+  useEffect(() => {
+    const mq = window.matchMedia('(min-width: 768px)');
+    const handler = (e: MediaQueryListEvent) => setIsDesktop(e.matches);
+    mq.addEventListener('change', handler);
+    return () => mq.removeEventListener('change', handler);
+  }, []);
+  return isDesktop;
+}
+
 export function SharePanel({ open, onClose, listingId, listingTitle }: SharePanelProps) {
+  const isDesktop = useIsDesktop();
   const [step, setStep] = useState<Step>('platform');
   const [selectedPlatform, setSelectedPlatform] = useState<Platform | null>(null);
   const [selectedPlacement, setSelectedPlacement] = useState<string | null>(null);
@@ -598,22 +612,20 @@ export function SharePanel({ open, onClose, listingId, listingTitle }: SharePane
     setSearchQuery,
   };
 
-  return (
-    <>
-      {/* Desktop: centered dialog */}
-      <Dialog open={open} onOpenChange={(v) => !v && handleClose()}>
-        <DialogContent className="hidden md:block p-0 max-w-sm w-full gap-0 overflow-hidden">
-          <ShareContent {...sharedProps} />
-        </DialogContent>
-      </Dialog>
-
-      {/* Mobile: bottom sheet */}
-      <Sheet open={open} onOpenChange={(v) => !v && handleClose()}>
-        <SheetContent side="bottom" className="md:hidden rounded-t-2xl p-0 max-h-[92vh]">
-          <SheetTitle className="sr-only">Share Listing</SheetTitle>
-          <ShareContent {...sharedProps} />
-        </SheetContent>
-      </Sheet>
-    </>
+  return isDesktop ? (
+    /* Desktop: centered dialog */
+    <Dialog open={open} onOpenChange={(v) => !v && handleClose()}>
+      <DialogContent className="p-0 max-w-sm w-full gap-0 overflow-hidden">
+        <ShareContent {...sharedProps} />
+      </DialogContent>
+    </Dialog>
+  ) : (
+    /* Mobile: bottom sheet */
+    <Sheet open={open} onOpenChange={(v) => !v && handleClose()}>
+      <SheetContent side="bottom" className="rounded-t-2xl p-0 max-h-[92vh]">
+        <SheetTitle className="sr-only">Share Listing</SheetTitle>
+        <ShareContent {...sharedProps} />
+      </SheetContent>
+    </Sheet>
   );
 }
