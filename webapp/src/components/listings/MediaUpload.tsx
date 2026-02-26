@@ -6,6 +6,7 @@ import {
 import { cn } from '@/lib/utils';
 import { uploadFile } from '@/lib/upload';
 import { toast } from 'sonner';
+import { VideoThumbnail } from './VideoThumbnail';
 
 interface MediaUploadProps {
   images: string[];
@@ -140,12 +141,7 @@ function MediaThumbnail({
       {type === 'image' ? (
         <img src={url} alt="" className="w-full h-full object-cover" loading="lazy" />
       ) : (
-        <div className="relative w-full h-full">
-          <video src={url} className="w-full h-full object-cover" preload="metadata" />
-          <div className="absolute inset-0 flex items-center justify-center bg-black/30">
-            <Film className="w-6 h-6 text-white" />
-          </div>
-        </div>
+        <VideoThumbnail src={url} className="w-full h-full group" playSize="sm" />
       )}
 
       {/* Default badge */}

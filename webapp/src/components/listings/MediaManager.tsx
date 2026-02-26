@@ -4,8 +4,9 @@
  */
 
 import { useState } from 'react';
-import { ChevronLeft, ChevronRight, Film, Building2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Building2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { VideoThumbnail } from './VideoThumbnail';
 
 interface MediaManagerProps {
   listingId: string;
@@ -76,7 +77,7 @@ export function MediaManager({ images, videos, defaultMedia }: MediaManagerProps
 
         {item.type === 'video' && (
           <div className="absolute top-3 left-3 bg-black/60 text-white text-xs font-medium px-2 py-1 rounded flex items-center gap-1.5">
-            <Film className="w-3.5 h-3.5" /> Video
+            Video
           </div>
         )}
       </div>
@@ -96,9 +97,7 @@ export function MediaManager({ images, videos, defaultMedia }: MediaManagerProps
               {it.type === 'image' ? (
                 <img src={it.url} alt="" className="w-full h-full object-cover" />
               ) : (
-                <div className="w-full h-full bg-muted flex items-center justify-center">
-                  <Film className="w-4 h-4 text-muted-foreground" />
-                </div>
+                <VideoThumbnail src={it.url} className="w-full h-full" playSize="sm" />
               )}
             </button>
           ))}

@@ -22,6 +22,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { SharePanel } from '@/components/listings/SharePanel';
+import { VideoThumbnail } from '@/components/listings/VideoThumbnail';
 import { api } from '@/lib/api';
 import type { Listing } from '@/lib/types';
 import { cn } from '@/lib/utils';
@@ -132,6 +133,7 @@ function CardMenu({
 function ListingCard({ listing, onClick, onShare }: { listing: Listing; onClick: () => void; onShare: () => void }) {
   const coverUrl = listing.defaultMedia || listing.images[0] || '';
   const hasImage = !!coverUrl;
+  const isVideoCover = hasImage && /\.(mp4|webm|mov|ogg)(\?|$)/i.test(coverUrl);
   const visibleAmenities = listing.amenities.slice(0, 3);
   const extraAmenities = listing.amenities.length - 3;
 
@@ -141,13 +143,17 @@ function ListingCard({ listing, onClick, onShare }: { listing: Listing; onClick:
       onClick={onClick}
     >
       {/* Image area */}
-      <div className="img-zoom-wrap relative h-44 bg-blue-50 flex items-center justify-center">
+      <div className="img-zoom-wrap relative h-44 bg-blue-50 flex items-center justify-center overflow-hidden">
         {hasImage ? (
-          <img
-            src={coverUrl}
-            alt={listing.title}
-            className="w-full h-full object-cover"
-          />
+          isVideoCover ? (
+            <VideoThumbnail src={coverUrl} className="w-full h-full group" playSize="md" />
+          ) : (
+            <img
+              src={coverUrl}
+              alt={listing.title}
+              className="w-full h-full object-cover"
+            />
+          )
         ) : (
           <Building2 className="w-12 h-12 text-blue-200" />
         )}
