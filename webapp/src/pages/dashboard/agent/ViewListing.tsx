@@ -220,6 +220,7 @@ export default function ViewListing() {
           listingId={listing.id}
           images={listing.images}
           videos={listing.videos}
+          defaultMedia={listing.defaultMedia}
         />
 
         {/* Header block */}

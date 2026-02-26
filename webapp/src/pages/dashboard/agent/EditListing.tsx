@@ -268,6 +268,7 @@ export default function EditListing() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [editImages, setEditImages] = useState<string[]>([]);
   const [editVideos, setEditVideos] = useState<string[]>([]);
+  const [editDefaultMedia, setEditDefaultMedia] = useState<string>('');
 
   // Local state for totalCommissionPct (UI only, not sent to API)
   const [totalCommissionPct, setTotalCommissionPct] = useState<string>('');
@@ -355,6 +356,7 @@ export default function EditListing() {
       // Seed media state from existing listing
       setEditImages(listing.images ?? []);
       setEditVideos((listing as { videos?: string[] }).videos ?? []);
+      setEditDefaultMedia(listing.defaultMedia ?? listing.images?.[0] ?? '');
     }
   }, [listing, reset]);
 
@@ -378,7 +380,7 @@ export default function EditListing() {
 
   const updateMutation = useMutation({
     mutationFn: (data: ListingFormValues) =>
-      api.put<Listing>(`/api/listings/${id}`, { ...data, images: editImages, videos: editVideos }),
+      api.put<Listing>(`/api/listings/${id}`, { ...data, images: editImages, videos: editVideos, defaultMedia: editDefaultMedia }),
     onSuccess: () => {
       toast.success('Listing updated');
       queryClient.invalidateQueries({ queryKey: ['listing', id] });
@@ -826,8 +828,10 @@ export default function EditListing() {
                   <MediaUpload
                     images={editImages}
                     videos={editVideos}
+                    defaultMedia={editDefaultMedia}
                     onImagesChange={setEditImages}
                     onVideosChange={setEditVideos}
+                    onDefaultMediaChange={setEditDefaultMedia}
                     disabled={updateMutation.isPending}
                   />
                 </SectionCard>

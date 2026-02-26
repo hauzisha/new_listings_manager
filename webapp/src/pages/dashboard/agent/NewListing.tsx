@@ -447,6 +447,7 @@ export default function NewListing() {
   const [showSuccess, setShowSuccess] = useState(false);
   const [uploadedImages, setUploadedImages] = useState<string[]>([]);
   const [uploadedVideos, setUploadedVideos] = useState<string[]>([]);
+  const [uploadedDefaultMedia, setUploadedDefaultMedia] = useState<string>('');
 
   // Local state for totalCommissionPct (UI only, not sent to API)
   const [totalCommissionPct, setTotalCommissionPct] = useState<string>('');
@@ -507,7 +508,7 @@ export default function NewListing() {
 
   const createMutation = useMutation({
     mutationFn: (data: ListingFormValues) =>
-      api.post<Listing>('/api/listings', { ...data, images: uploadedImages, videos: uploadedVideos }),
+      api.post<Listing>('/api/listings', { ...data, images: uploadedImages, videos: uploadedVideos, defaultMedia: uploadedDefaultMedia }),
     onSuccess: (listing) => {
       toast.success('Listing created!', { description: 'Your listing is now live.' });
       setCreatedListing(listing);
@@ -900,8 +901,10 @@ export default function NewListing() {
                 <MediaUpload
                   images={uploadedImages}
                   videos={uploadedVideos}
+                  defaultMedia={uploadedDefaultMedia}
                   onImagesChange={setUploadedImages}
                   onVideosChange={setUploadedVideos}
+                  onDefaultMediaChange={setUploadedDefaultMedia}
                   disabled={createMutation.isPending}
                 />
               </SectionCard>

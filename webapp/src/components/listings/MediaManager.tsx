@@ -11,13 +11,23 @@ interface MediaManagerProps {
   listingId: string;
   images: string[];
   videos: string[];
+  defaultMedia?: string;
 }
 
-export function MediaManager({ images, videos }: MediaManagerProps) {
-  const items = [
+export function MediaManager({ images, videos, defaultMedia }: MediaManagerProps) {
+  const allItems = [
     ...images.map((url) => ({ url, type: 'image' as const })),
     ...videos.map((url) => ({ url, type: 'video' as const })),
   ];
+
+  // Put defaultMedia first if set
+  const items = defaultMedia && allItems.some((i) => i.url === defaultMedia)
+    ? [
+        allItems.find((i) => i.url === defaultMedia)!,
+        ...allItems.filter((i) => i.url !== defaultMedia),
+      ]
+    : allItems;
+
   const [current, setCurrent] = useState(0);
 
   if (items.length === 0) {

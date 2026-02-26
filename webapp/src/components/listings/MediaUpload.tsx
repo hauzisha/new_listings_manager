@@ -10,8 +10,10 @@ import { toast } from 'sonner';
 interface MediaUploadProps {
   images: string[];
   videos: string[];
+  defaultMedia: string;
   onImagesChange: (urls: string[]) => void;
   onVideosChange: (urls: string[]) => void;
+  onDefaultMediaChange: (url: string) => void;
   maxImages?: number;
   maxVideos?: number;
   disabled?: boolean;
@@ -211,6 +213,7 @@ function MediaSection({
   icon: Icon,
   items,
   type,
+  defaultMedia,
   disabled,
   onReorder,
   onSetDefault,
@@ -222,9 +225,10 @@ function MediaSection({
   icon: React.ElementType;
   items: string[];
   type: 'image' | 'video';
+  defaultMedia: string;
   disabled: boolean;
   onReorder: (urls: string[]) => void;
-  onSetDefault: (index: number) => void;
+  onSetDefault: (url: string) => void;
   onRotate?: (index: number) => void;
   onRemove: (index: number) => void;
   uploadingItems: { name: string; progress: number }[];
@@ -268,10 +272,10 @@ function MediaSection({
             key={`${url}-${i}`}
             url={url}
             type={type}
-            isDefault={i === 0}
+            isDefault={url === defaultMedia}
             index={i}
             onRemove={() => onRemove(i)}
-            onSetDefault={() => onSetDefault(i)}
+            onSetDefault={() => onSetDefault(url)}
             onRotate={onRotate ? () => onRotate(i) : undefined}
             onDragStart={handleDragStart}
             onDragEnter={handleDragEnter}
@@ -292,8 +296,10 @@ function MediaSection({
 export function MediaUpload({
   images,
   videos,
+  defaultMedia,
   onImagesChange,
   onVideosChange,
+  onDefaultMediaChange,
   maxImages = 20,
   maxVideos = 5,
   disabled = false,
@@ -352,13 +358,20 @@ export function MediaUpload({
       );
 
       setUploading((prev) => prev.slice(toUpload.length));
+
+      // Auto-set first uploaded item as default if none set yet
+      if (!defaultMedia) {
+        if (newImageUrls.length > 0) onDefaultMediaChange(newImageUrls[0]);
+        else if (newVideoUrls.length > 0) onDefaultMediaChange(newVideoUrls[0]);
+      }
+
       if (newImageUrls.length > 0) onImagesChange([...images, ...newImageUrls]);
       if (newVideoUrls.length > 0) onVideosChange([...videos, ...newVideoUrls]);
 
       const total = newImageUrls.length + newVideoUrls.length;
       if (total > 0) toast.success(`${total} file${total > 1 ? 's' : ''} uploaded`);
     },
-    [images, videos, maxImages, maxVideos, onImagesChange, onVideosChange, uploading.length]
+    [images, videos, defaultMedia, maxImages, maxVideos, onImagesChange, onVideosChange, onDefaultMediaChange, uploading.length]
   );
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -366,18 +379,12 @@ export function MediaUpload({
   };
 
   // ── Image handlers ──────────────────────────────────────────────────────────
-  const handleSetDefaultImage = (i: number) => {
-    const updated = [...images];
-    const [moved] = updated.splice(i, 1);
-    updated.unshift(moved);
-    onImagesChange(updated);
-    toast.success('Default photo set');
-  };
-
   const handleRotateImage = async (i: number) => {
     try {
       const rotated = await rotateImageUrl(images[i]);
       const updated = [...images];
+      // If this was the default, update defaultMedia to the new rotated URL
+      if (images[i] === defaultMedia) onDefaultMediaChange(rotated);
       updated[i] = rotated;
       onImagesChange(updated);
       toast.success('Image rotated');
@@ -387,20 +394,28 @@ export function MediaUpload({
   };
 
   const handleRemoveImage = (i: number) => {
-    onImagesChange(images.filter((_, idx) => idx !== i));
+    const url = images[i];
+    const newImages = images.filter((_, idx) => idx !== i);
+    onImagesChange(newImages);
+    // If removed item was the default, clear or auto-assign next available
+    if (url === defaultMedia) {
+      if (newImages.length > 0) onDefaultMediaChange(newImages[0]);
+      else if (videos.length > 0) onDefaultMediaChange(videos[0]);
+      else onDefaultMediaChange('');
+    }
   };
 
   // ── Video handlers ──────────────────────────────────────────────────────────
-  const handleSetDefaultVideo = (i: number) => {
-    const updated = [...videos];
-    const [moved] = updated.splice(i, 1);
-    updated.unshift(moved);
-    onVideosChange(updated);
-    toast.success('Default video set');
-  };
-
   const handleRemoveVideo = (i: number) => {
-    onVideosChange(videos.filter((_, idx) => idx !== i));
+    const url = videos[i];
+    const newVideos = videos.filter((_, idx) => idx !== i);
+    onVideosChange(newVideos);
+    // If removed item was the default, clear or auto-assign next available
+    if (url === defaultMedia) {
+      if (images.length > 0) onDefaultMediaChange(images[0]);
+      else if (newVideos.length > 0) onDefaultMediaChange(newVideos[0]);
+      else onDefaultMediaChange('');
+    }
   };
 
   const uploadingImages = uploading.filter((u) => u.type === 'image');
@@ -455,7 +470,7 @@ export function MediaUpload({
       {!hasMedia && (
         <p className="text-xs text-muted-foreground flex items-center gap-1.5">
           <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />
-          Images are compressed automatically. The first photo/video in each section is the default.
+          Hover any photo or video and use the menu to set it as the default cover.
         </p>
       )}
 
@@ -465,9 +480,10 @@ export function MediaUpload({
         icon={Image}
         items={images}
         type="image"
+        defaultMedia={defaultMedia}
         disabled={disabled}
         onReorder={onImagesChange}
-        onSetDefault={handleSetDefaultImage}
+        onSetDefault={onDefaultMediaChange}
         onRotate={handleRotateImage}
         onRemove={handleRemoveImage}
         uploadingItems={uploadingImages}
@@ -479,9 +495,10 @@ export function MediaUpload({
         icon={Film}
         items={videos}
         type="video"
+        defaultMedia={defaultMedia}
         disabled={disabled}
         onReorder={onVideosChange}
-        onSetDefault={handleSetDefaultVideo}
+        onSetDefault={onDefaultMediaChange}
         onRemove={handleRemoveVideo}
         uploadingItems={uploadingVideos}
       />

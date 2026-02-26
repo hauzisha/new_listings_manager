@@ -130,7 +130,8 @@ function CardMenu({
 }
 
 function ListingCard({ listing, onClick, onShare }: { listing: Listing; onClick: () => void; onShare: () => void }) {
-  const hasImage = listing.images.length > 0;
+  const coverUrl = listing.defaultMedia || listing.images[0] || '';
+  const hasImage = !!coverUrl;
   const visibleAmenities = listing.amenities.slice(0, 3);
   const extraAmenities = listing.amenities.length - 3;
 
@@ -143,7 +144,7 @@ function ListingCard({ listing, onClick, onShare }: { listing: Listing; onClick:
       <div className="img-zoom-wrap relative h-44 bg-blue-50 flex items-center justify-center">
         {hasImage ? (
           <img
-            src={listing.images[0]}
+            src={coverUrl}
             alt={listing.title}
             className="w-full h-full object-cover"
           />
