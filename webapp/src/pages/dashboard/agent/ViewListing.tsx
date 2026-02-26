@@ -220,7 +220,6 @@ export default function ViewListing() {
           listingId={listing.id}
           images={listing.images}
           videos={listing.videos}
-          editable
         />
 
         {/* Header block */}
