@@ -1,6 +1,7 @@
 {
   "name": "new-listings-manager",
   "private": true,
+  "type": "module",
   "dependencies": {
     "@hono/node-server": "^1.19.9",
     "@hono/zod-validator": "^0.7.6",
