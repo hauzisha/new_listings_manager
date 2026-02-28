@@ -11,6 +11,6 @@
     { "src": "/api/(.*)", "dest": "/api/[[...route]].ts" },
     { "src": "/health", "dest": "/api/[[...route]].ts" },
     { "handle": "filesystem" },
-    { "src": "/(.*)", "dest": "/webapp/dist/index.html" }
+    { "src": "/(.*)", "dest": "/index.html" }
   ]
 }
