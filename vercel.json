@@ -1,0 +1,11 @@
+{
+  "buildCommand": "cd webapp && npm install && npm run build && cd ../backend && npm install && npx prisma generate",
+  "outputDirectory": "webapp/dist",
+  "installCommand": "echo 'skipping default install'",
+  "routes": [
+    { "src": "/api/(.*)", "dest": "/api/[[...route]].ts" },
+    { "src": "/health", "dest": "/api/[[...route]].ts" },
+    { "handle": "filesystem" },
+    { "src": "/(.*)", "dest": "/webapp/dist/index.html" }
+  ]
+}
