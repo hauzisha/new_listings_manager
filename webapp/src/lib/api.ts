@@ -12,15 +12,34 @@ interface ApiResponse<T> {
   data: T;
 }
 
+// Session token storage — set after sign-in, cleared on sign-out
+// Restore from localStorage on page load (survives refresh)
+let sessionToken: string | null = localStorage.getItem("session_token");
+export function setSessionToken(token: string | null) {
+  sessionToken = token;
+  if (token) {
+    localStorage.setItem("session_token", token);
+  } else {
+    localStorage.removeItem("session_token");
+  }
+}
+
 async function request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
   const url = `${API_BASE_URL}${endpoint}`;
 
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+    ...(options.headers as Record<string, string>),
+  };
+
+  // Attach session token as Bearer if available
+  if (sessionToken) {
+    headers["Authorization"] = `Bearer ${sessionToken}`;
+  }
+
   const config: RequestInit = {
     ...options,
-    headers: {
-      "Content-Type": "application/json",
-      ...options.headers,
-    },
+    headers,
     credentials: "include",
   };
 
