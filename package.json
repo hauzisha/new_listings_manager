@@ -3,16 +3,16 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "postinstall": "prisma generate --schema=backend/prisma/schema.prisma"
+    "postinstall": "npx prisma@6 generate --schema=backend/prisma/schema.prisma"
   },
   "dependencies": {
     "@hono/node-server": "^1.19.9",
     "@hono/zod-validator": "^0.7.6",
-    "@prisma/client": "6",
+    "@prisma/client": "~6.19.2",
     "better-auth": "^1.4.19",
     "esbuild": "^0.24.0",
     "hono": "4.6.0",
-    "prisma": "6",
+    "prisma": "~6.19.2",
     "zod": "^3.25.76"
   }
 }
