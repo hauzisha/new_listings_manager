@@ -2,6 +2,9 @@
   "name": "new-listings-manager",
   "private": true,
   "type": "module",
+  "scripts": {
+    "postinstall": "prisma generate --schema=backend/prisma/schema.prisma"
+  },
   "dependencies": {
     "@hono/node-server": "^1.19.9",
     "@hono/zod-validator": "^0.7.6",
