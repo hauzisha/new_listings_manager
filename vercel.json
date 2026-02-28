@@ -2,9 +2,14 @@
   "installCommand": "npm install && cd webapp && npm install && cd ../backend && npm install",
   "buildCommand": "cd webapp && npm run build && cd ../backend && npx prisma generate",
   "outputDirectory": "webapp/dist",
+  "functions": {
+    "backend/vercel.ts": {
+      "includeFiles": "backend/**"
+    }
+  },
   "routes": [
-    { "src": "/api/(.*)", "dest": "/api/[[...route]].ts" },
-    { "src": "/health", "dest": "/api/[[...route]].ts" },
+    { "src": "/api/(.*)", "dest": "/backend/vercel.ts" },
+    { "src": "/health", "dest": "/backend/vercel.ts" },
     { "handle": "filesystem" },
     { "src": "/(.*)", "dest": "/webapp/dist/index.html" }
   ]
