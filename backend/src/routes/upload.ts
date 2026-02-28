@@ -1,8 +1,16 @@
 import { Hono } from "hono";
-import { createVibecodeSDK, StorageError } from "@vibecodeapp/backend-sdk";
 import type { auth } from "../auth";
 
-const vibecode = createVibecodeSDK();
+let vibecode: any = null;
+let StorageError: any = null;
+
+try {
+  const sdk = await import("@vibecodeapp/backend-sdk");
+  vibecode = sdk.createVibecodeSDK();
+  StorageError = sdk.StorageError;
+} catch {
+  // @vibecodeapp/backend-sdk not available (e.g. on Vercel)
+}
 
 export const uploadRouter = new Hono<{
   Variables: {
@@ -16,6 +24,10 @@ uploadRouter.post("/upload", async (c) => {
   const user = c.get("user");
   if (!user) {
     return c.json({ error: { message: "Unauthorized", code: "UNAUTHORIZED" } }, 401);
+  }
+
+  if (!vibecode) {
+    return c.json({ error: { message: "File upload not available in this environment", code: "UPLOAD_UNAVAILABLE" } }, 503);
   }
 
   let formData: FormData;
@@ -68,7 +80,7 @@ uploadRouter.post("/upload", async (c) => {
     const result = await vibecode.storage.upload(file);
     return c.json({ data: result });
   } catch (error) {
-    if (error instanceof StorageError) {
+    if (StorageError && error instanceof StorageError) {
       return c.json({ error: { message: error.message, code: "STORAGE_ERROR" } }, error.statusCode as 400 | 500);
     }
     console.error("Upload error:", error);
@@ -83,13 +95,17 @@ uploadRouter.delete("/upload/:id", async (c) => {
     return c.json({ error: { message: "Unauthorized", code: "UNAUTHORIZED" } }, 401);
   }
 
+  if (!vibecode) {
+    return c.json({ error: { message: "File deletion not available in this environment", code: "UPLOAD_UNAVAILABLE" } }, 503);
+  }
+
   const { id } = c.req.param();
 
   try {
     await vibecode.storage.delete(id);
     return c.json({ data: { success: true } });
   } catch (error) {
-    if (error instanceof StorageError) {
+    if (StorageError && error instanceof StorageError) {
       return c.json({ error: { message: error.message, code: "STORAGE_ERROR" } }, error.statusCode as 400 | 404 | 500);
     }
     console.error("Delete error:", error);

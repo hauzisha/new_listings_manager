@@ -1,0 +1,13 @@
+{
+  "name": "new-listings-manager",
+  "private": true,
+  "dependencies": {
+    "@hono/node-server": "^1.19.9",
+    "@hono/zod-validator": "^0.7.6",
+    "@prisma/client": "6",
+    "better-auth": "^1.4.19",
+    "hono": "4.6.0",
+    "prisma": "6",
+    "zod": "^3.25.76"
+  }
+}
