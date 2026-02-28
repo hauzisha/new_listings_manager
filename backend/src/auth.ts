@@ -4,7 +4,7 @@ import { prisma } from "./prisma";
 import { env } from "./env";
 
 export const auth = betterAuth({
-  database: prismaAdapter(prisma, { provider: "sqlite" }),
+  database: prismaAdapter(prisma, { provider: "postgresql" }),
   secret: env.BETTER_AUTH_SECRET,
   baseURL: env.BACKEND_URL,
   trustedOrigins: [
@@ -15,6 +15,7 @@ export const auth = betterAuth({
     "https://*.vibecodeapp.com",
     "https://*.vibecode.dev",
     "https://vibecode.dev",
+    "https://*.vercel.app",
   ],
   emailAndPassword: {
     enabled: true,
