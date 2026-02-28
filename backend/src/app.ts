@@ -49,7 +49,12 @@ app.use("*", logger());
 // Auth session middleware - populates user/session for all routes
 // Tries cookie-based session first, then falls back to Bearer token lookup
 app.use("*", async (c, next) => {
-  let session = await auth.api.getSession({ headers: c.req.raw.headers });
+  let session: Awaited<ReturnType<typeof auth.api.getSession>> | null = null;
+  try {
+    session = await auth.api.getSession({ headers: c.req.raw.headers });
+  } catch {
+    // Cookie-based session lookup may fail on Vercel; fall through to Bearer token
+  }
 
   // Fallback: check Authorization Bearer token in database
   if (!session) {
