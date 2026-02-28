@@ -3,6 +3,7 @@ import { MapPin, BedDouble, Bath, Maximize2, Home, TrendingUp } from "lucide-rea
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { Listing } from "@/lib/types";
+import { VideoThumbnail } from "@/components/listings/VideoThumbnail";
 
 interface ListingCardProps {
   listing: Listing;
@@ -29,14 +30,34 @@ export default function ListingCard({ listing }: ListingCardProps) {
     ? Math.round(listing.price * listing.promoterCommissionPct / 100)
     : 0;
 
+  // Determine what to show as the preview media
+  const defaultMedia = listing.defaultMedia;
+  const isDefaultVideo = defaultMedia
+    ? listing.videos?.includes(defaultMedia)
+    : false;
+  const previewImage = defaultMedia && !isDefaultVideo
+    ? defaultMedia
+    : listing.images?.[0];
+  const previewVideo = isDefaultVideo
+    ? defaultMedia
+    : !previewImage && listing.videos?.[0]
+      ? listing.videos[0]
+      : null;
+
   return (
     <article className="bg-white rounded-xl border border-border overflow-hidden card-hover flex flex-col">
       {/* Image */}
       <div className="relative">
         <div className="img-zoom-wrap relative">
-          {listing.images.length > 0 ? (
+          {previewVideo ? (
+            <VideoThumbnail
+              src={previewVideo}
+              className="w-full h-48"
+              playSize="md"
+            />
+          ) : previewImage ? (
             <img
-              src={listing.images[0]}
+              src={previewImage}
               alt={listing.title}
               className="object-cover w-full h-48"
               loading="lazy"
