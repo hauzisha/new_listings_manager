@@ -2,6 +2,11 @@
   "installCommand": "npm install && cd webapp && npm install && cd ../backend && npm install",
   "buildCommand": "npx prisma generate --schema=backend/prisma/schema.prisma && cd backend && npx prisma generate && npx esbuild src/app.ts --bundle --format=esm --platform=node --packages=external --outfile=../api/_app.mjs && cd ../webapp && npm run build",
   "outputDirectory": "webapp/dist",
+  "functions": {
+    "api/**": {
+      "includeFiles": "node_modules/.prisma/**,node_modules/@prisma/client/**"
+    }
+  },
   "routes": [
     { "src": "/api/(.*)", "dest": "/api/[[...route]].ts" },
     { "src": "/health", "dest": "/api/[[...route]].ts" },
