@@ -1,3 +1,5 @@
+import { getSessionToken } from "./session";
+
 const API_BASE_URL = import.meta.env.VITE_BACKEND_URL || "";
 
 class ApiError extends Error {
@@ -5,6 +7,11 @@ class ApiError extends Error {
     super(message);
     this.name = "ApiError";
   }
+}
+
+function authHeaders(): Record<string, string> {
+  const token = getSessionToken();
+  return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
 // Response envelope type - all app routes return { data: T }
@@ -19,6 +26,7 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
     ...options,
     headers: {
       "Content-Type": "application/json",
+      ...authHeaders(),
       ...options.headers,
     },
     credentials: "include",
@@ -57,6 +65,7 @@ async function rawRequest(endpoint: string, options: RequestInit = {}): Promise<
   const config: RequestInit = {
     ...options,
     headers: {
+      ...authHeaders(),
       ...options.headers,
     },
     credentials: "include",

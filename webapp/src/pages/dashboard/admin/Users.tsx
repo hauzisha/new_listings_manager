@@ -29,10 +29,10 @@ function getInitials(name: string): string {
 function RoleBadge({ role }: { role: User['role'] }) {
   const classes =
     role === 'ADMIN'
-      ? 'bg-indigo-100 text-indigo-700 border-indigo-200'
+      ? 'bg-indigo-100 text-indigo-700 border-indigo-200 dark:bg-indigo-900/30 dark:text-indigo-300 dark:border-indigo-800'
       : role === 'AGENT'
-      ? 'bg-emerald-100 text-emerald-700 border-emerald-200'
-      : 'bg-amber-100 text-amber-700 border-amber-200';
+      ? 'bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-300 dark:border-emerald-800'
+      : 'bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-800';
   const label = role === 'ADMIN' ? 'Admin' : role === 'AGENT' ? 'Agent' : 'Promoter';
   return (
     <span className={cn('inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold border', classes)}>
@@ -43,11 +43,11 @@ function RoleBadge({ role }: { role: User['role'] }) {
 
 function StatusBadge({ isApproved }: { isApproved: boolean }) {
   return isApproved ? (
-    <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold border bg-emerald-100 text-emerald-700 border-emerald-200">
+    <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold border bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-300 dark:border-emerald-800">
       Approved
     </span>
   ) : (
-    <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold border bg-amber-100 text-amber-700 border-amber-200">
+    <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold border bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-800">
       Pending
     </span>
   );
@@ -255,7 +255,7 @@ export default function AdminUsers() {
               <h2 className="font-display text-base font-semibold text-foreground">
                 Pending Approvals
               </h2>
-              <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-amber-100 text-amber-700 text-[11px] font-bold">
+              <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300 text-[11px] font-bold">
                 {pendingUsers.length}
               </span>
             </div>

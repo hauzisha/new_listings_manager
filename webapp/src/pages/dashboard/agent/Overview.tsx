@@ -64,18 +64,18 @@ function formatKES(amount: number): string {
 }
 
 const STAGE_CONFIG: Record<InquiryStage, { label: string; className: string }> = {
-  INQUIRY: { label: 'New Inquiry', className: 'bg-blue-100 text-blue-700 border-blue-200' },
-  WAITING_RESPONSE: { label: 'Awaiting Response', className: 'bg-amber-100 text-amber-700 border-amber-200' },
-  SCHEDULED: { label: 'Scheduled', className: 'bg-purple-100 text-purple-700 border-purple-200' },
-  VIEWED: { label: 'Viewed', className: 'bg-teal-100 text-teal-700 border-teal-200' },
-  RENTED: { label: 'Rented', className: 'bg-emerald-100 text-emerald-700 border-emerald-200' },
-  PURCHASED: { label: 'Purchased', className: 'bg-emerald-100 text-emerald-700 border-emerald-200' },
-  NO_SHOW: { label: 'No Show', className: 'bg-red-100 text-red-700 border-red-200' },
-  CANCELLED: { label: 'Cancelled', className: 'bg-gray-100 text-gray-600 border-gray-200' },
+  INQUIRY: { label: 'New Inquiry', className: 'bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-800' },
+  WAITING_RESPONSE: { label: 'Awaiting Response', className: 'bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-800' },
+  SCHEDULED: { label: 'Scheduled', className: 'bg-purple-100 text-purple-700 border-purple-200 dark:bg-purple-900/30 dark:text-purple-300 dark:border-purple-800' },
+  VIEWED: { label: 'Viewed', className: 'bg-teal-100 text-teal-700 border-teal-200 dark:bg-teal-900/30 dark:text-teal-300 dark:border-teal-800' },
+  RENTED: { label: 'Rented', className: 'bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-300 dark:border-emerald-800' },
+  PURCHASED: { label: 'Purchased', className: 'bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-300 dark:border-emerald-800' },
+  NO_SHOW: { label: 'No Show', className: 'bg-red-100 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-300 dark:border-red-800' },
+  CANCELLED: { label: 'Cancelled', className: 'bg-gray-100 text-gray-600 border-gray-200 dark:bg-gray-800/50 dark:text-gray-300 dark:border-gray-700' },
 };
 
 function StageBadge({ stage }: { stage: InquiryStage }) {
-  const config = STAGE_CONFIG[stage] ?? { label: stage, className: 'bg-gray-100 text-gray-600 border-gray-200' };
+  const config = STAGE_CONFIG[stage] ?? { label: stage, className: 'bg-gray-100 text-gray-600 border-gray-200 dark:bg-gray-800/50 dark:text-gray-300 dark:border-gray-700' };
   return (
     <span className={cn('text-[10px] font-semibold px-2 py-0.5 rounded-full border', config.className)}>
       {config.label}
@@ -238,7 +238,7 @@ export default function AgentOverview() {
             value={stats?.openInquiries ?? 0}
             sublabel={`${stats?.totalInquiries ?? 0} total inquiries`}
             icon={MessageSquare}
-            iconClass="bg-amber-100 text-amber-600"
+            iconClass="bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-300"
             topBorderClass="border-t-amber-500"
           />
           <StatCard
@@ -246,7 +246,7 @@ export default function AgentOverview() {
             value={formatKES(totalEarned)}
             sublabel="Approved + Paid"
             icon={DollarSign}
-            iconClass="bg-emerald-100 text-emerald-600"
+            iconClass="bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-300"
             topBorderClass="border-t-emerald-500"
           />
           <StatCard
@@ -254,7 +254,7 @@ export default function AgentOverview() {
             value={formatKES(stats?.pendingCommissions ?? 0)}
             sublabel="Awaiting approval"
             icon={Clock}
-            iconClass="bg-purple-100 text-purple-600"
+            iconClass="bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-300"
             topBorderClass="border-t-purple-500"
           />
         </div>
@@ -275,14 +275,14 @@ export default function AgentOverview() {
               description="Respond to client inquiries"
               href="/dashboard/agent/inquiries"
               icon={MessageSquare}
-              iconClass="bg-amber-100 text-amber-600"
+              iconClass="bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-300"
             />
             <QuickLinkCard
               label="View Commissions"
               description="Track your earnings"
               href="/dashboard/agent/commissions"
               icon={DollarSign}
-              iconClass="bg-emerald-100 text-emerald-600"
+              iconClass="bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-300"
             />
           </div>
         </div>
@@ -341,20 +341,20 @@ export default function AgentOverview() {
 
         {/* Stale warning if open inquiries */}
         {(stats?.openInquiries ?? 0) > 0 && (
-          <div className="flex items-start gap-3 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3.5">
-            <AlertCircle className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
+          <div className="flex items-start gap-3 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-xl px-4 py-3.5">
+            <AlertCircle className="w-4 h-4 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold text-amber-800">
+              <p className="text-sm font-semibold text-amber-800 dark:text-amber-300">
                 {stats?.openInquiries} open {stats?.openInquiries === 1 ? 'inquiry' : 'inquiries'} need attention
               </p>
-              <p className="text-xs text-amber-700 mt-0.5">
+              <p className="text-xs text-amber-700 dark:text-amber-400 mt-0.5">
                 Respond promptly to stay within SLA targets and avoid stale flags.
               </p>
             </div>
             <Button
               size="sm"
               variant="outline"
-              className="h-7 text-xs border-amber-300 text-amber-800 hover:bg-amber-100 flex-shrink-0"
+              className="h-7 text-xs border-amber-300 text-amber-800 hover:bg-amber-100 dark:border-amber-700 dark:text-amber-300 dark:hover:bg-amber-900/30 flex-shrink-0"
               onClick={() => navigate('/dashboard/agent/inquiries')}
             >
               Respond

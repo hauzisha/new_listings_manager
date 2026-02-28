@@ -1,7 +1,9 @@
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { ThemeProvider } from "@/components/ThemeProvider";
+import Homepage from "./pages/Index";
 import Login from "./pages/auth/Login";
 import AgentSignup from "./pages/auth/AgentSignup";
 import PromoterSignup from "./pages/auth/PromoterSignup";
@@ -41,12 +43,13 @@ import PromoterCommissions from "./pages/dashboard/promoter/Commissions";
 const queryClient = new QueryClient();
 
 const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Sonner />
-      <BrowserRouter>
+  <ThemeProvider defaultTheme="light">
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <Sonner />
+        <BrowserRouter>
         <Routes>
-          <Route path="/" element={<Navigate to="/listings" replace />} />
+          <Route path="/" element={<Homepage />} />
           <Route path="/listings" element={<MarketplaceListings />} />
           <Route path="/listings/:slug" element={<ListingDetail />} />
           <Route path="/listings/:slug/r/:ref" element={<ListingDetail />} />
@@ -84,9 +87,10 @@ const App = () => (
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
-      </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
+        </BrowserRouter>
+      </TooltipProvider>
+    </QueryClientProvider>
+  </ThemeProvider>
 );
 
 export default App;

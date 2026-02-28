@@ -39,9 +39,9 @@ function formatKES(amount: number): string {
 }
 
 const STATUS_CONFIG: Record<CommissionStatus, { label: string; className: string; dot: string }> = {
-  PENDING: { label: 'Pending', className: 'bg-amber-100 text-amber-700 border-amber-200', dot: 'bg-amber-500' },
-  APPROVED: { label: 'Approved', className: 'bg-blue-100 text-blue-700 border-blue-200', dot: 'bg-blue-500' },
-  PAID: { label: 'Paid', className: 'bg-emerald-100 text-emerald-700 border-emerald-200', dot: 'bg-emerald-500' },
+  PENDING: { label: 'Pending', className: 'bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-800', dot: 'bg-amber-500' },
+  APPROVED: { label: 'Approved', className: 'bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-800', dot: 'bg-blue-500' },
+  PAID: { label: 'Paid', className: 'bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-300 dark:border-emerald-800', dot: 'bg-emerald-500' },
 };
 
 function StatusBadge({ status }: { status: CommissionStatus }) {
@@ -240,7 +240,7 @@ export default function AgentCommissions() {
             value={formatKES(pending)}
             sublabel={`${commissions.filter((c) => c.status === 'PENDING').length} pending`}
             icon={Clock}
-            iconClass="bg-amber-100 text-amber-600"
+            iconClass="bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-300"
             topBorderClass="border-t-amber-500"
           />
           <StatCard
@@ -248,7 +248,7 @@ export default function AgentCommissions() {
             value={formatKES(approved)}
             sublabel={`${commissions.filter((c) => c.status === 'APPROVED').length} approved`}
             icon={CheckCircle}
-            iconClass="bg-blue-100 text-blue-600"
+            iconClass="bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-300"
             topBorderClass="border-t-blue-500"
           />
           <StatCard
@@ -256,7 +256,7 @@ export default function AgentCommissions() {
             value={formatKES(paid)}
             sublabel={`${commissions.filter((c) => c.status === 'PAID').length} paid`}
             icon={Banknote}
-            iconClass="bg-emerald-100 text-emerald-600"
+            iconClass="bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-300"
             topBorderClass="border-t-emerald-500"
           />
         </div>

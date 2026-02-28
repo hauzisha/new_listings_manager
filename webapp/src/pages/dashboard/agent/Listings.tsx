@@ -337,21 +337,21 @@ export default function AgentListings() {
             label="Active"
             value={totalActive}
             icon={CheckCircle}
-            iconClass="bg-emerald-100 text-emerald-600"
+            iconClass="bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-300"
             topBorderClass="border-t-emerald-500"
           />
           <StatCard
             label="Inactive"
             value={totalInactive}
             icon={EyeOff}
-            iconClass="bg-gray-100 text-gray-500"
+            iconClass="bg-gray-100 text-gray-500 dark:bg-gray-800/50 dark:text-gray-300"
             topBorderClass="border-t-gray-400"
           />
           <StatCard
             label="Sold / Rented"
             value={totalSoldRented}
             icon={TrendingUp}
-            iconClass="bg-amber-100 text-amber-600"
+            iconClass="bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-300"
             topBorderClass="border-t-amber-500"
           />
         </div>
@@ -366,7 +366,7 @@ export default function AgentListings() {
               className={cn(
                 'px-3 py-1.5 rounded-md text-xs font-medium transition-all',
                 activeTab === tab.value
-                  ? 'bg-white text-foreground shadow-sm'
+                  ? 'bg-card text-foreground shadow-sm'
                   : 'text-muted-foreground hover:text-foreground'
               )}
             >

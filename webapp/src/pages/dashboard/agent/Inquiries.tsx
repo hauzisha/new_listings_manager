@@ -84,14 +84,14 @@ type StageFilter = InquiryStage | 'ALL' | 'STALE';
 // ─── Stage config ─────────────────────────────────────────────────────────────
 
 const STAGE_CONFIG: Record<InquiryStage, { label: string; className: string; dot: string; short: string }> = {
-  INQUIRY:          { label: 'Inquiry',          short: 'Inquiry',    className: 'bg-blue-100 text-blue-700 border-blue-200',       dot: 'bg-blue-500'     },
-  WAITING_RESPONSE: { label: 'Waiting Response', short: 'Waiting',    className: 'bg-amber-100 text-amber-700 border-amber-200',     dot: 'bg-amber-500'    },
-  SCHEDULED:        { label: 'Scheduled',         short: 'Scheduled',  className: 'bg-violet-100 text-violet-700 border-violet-200',  dot: 'bg-violet-500'   },
-  VIEWED:           { label: 'Viewed',            short: 'Viewed',     className: 'bg-teal-100 text-teal-700 border-teal-200',        dot: 'bg-teal-500'     },
-  RENTED:           { label: 'Rented',            short: 'Rented',     className: 'bg-emerald-100 text-emerald-700 border-emerald-200', dot: 'bg-emerald-500' },
-  PURCHASED:        { label: 'Purchased',         short: 'Purchased',  className: 'bg-emerald-100 text-emerald-700 border-emerald-200', dot: 'bg-emerald-500' },
-  NO_SHOW:          { label: 'No Show',           short: 'No Show',    className: 'bg-red-100 text-red-700 border-red-200',           dot: 'bg-red-500'      },
-  CANCELLED:        { label: 'Cancelled',         short: 'Cancelled',  className: 'bg-gray-100 text-gray-600 border-gray-200',        dot: 'bg-gray-400'     },
+  INQUIRY:          { label: 'Inquiry',          short: 'Inquiry',    className: 'bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-800',       dot: 'bg-blue-500'     },
+  WAITING_RESPONSE: { label: 'Waiting Response', short: 'Waiting',    className: 'bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-800',     dot: 'bg-amber-500'    },
+  SCHEDULED:        { label: 'Scheduled',         short: 'Scheduled',  className: 'bg-violet-100 text-violet-700 border-violet-200 dark:bg-violet-900/30 dark:text-violet-300 dark:border-violet-800',  dot: 'bg-violet-500'   },
+  VIEWED:           { label: 'Viewed',            short: 'Viewed',     className: 'bg-teal-100 text-teal-700 border-teal-200 dark:bg-teal-900/30 dark:text-teal-300 dark:border-teal-800',        dot: 'bg-teal-500'     },
+  RENTED:           { label: 'Rented',            short: 'Rented',     className: 'bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-300 dark:border-emerald-800', dot: 'bg-emerald-500' },
+  PURCHASED:        { label: 'Purchased',         short: 'Purchased',  className: 'bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-300 dark:border-emerald-800', dot: 'bg-emerald-500' },
+  NO_SHOW:          { label: 'No Show',           short: 'No Show',    className: 'bg-red-100 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-300 dark:border-red-800',           dot: 'bg-red-500'      },
+  CANCELLED:        { label: 'Cancelled',         short: 'Cancelled',  className: 'bg-gray-100 text-gray-600 border-gray-200 dark:bg-gray-800/50 dark:text-gray-300 dark:border-gray-700',        dot: 'bg-gray-400'     },
 };
 
 const STAGE_PIPELINE: InquiryStage[] = [
@@ -159,7 +159,7 @@ function StagePipeline({ currentStage }: { currentStage: InquiryStage }) {
           <div key={stage} className="flex items-center">
             <div className={cn(
               'flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold transition-all border whitespace-nowrap',
-              isCurrent ? cfg.className : isPast ? 'bg-emerald-50 text-emerald-600 border-emerald-200' : 'bg-muted/40 text-muted-foreground border-transparent'
+              isCurrent ? cfg.className : isPast ? 'bg-emerald-50 text-emerald-600 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-300 dark:border-emerald-800' : 'bg-muted/40 text-muted-foreground border-transparent'
             )}>
               {isPast ? <CheckCheck className="w-3 h-3" /> : null}
               {cfg.short}
@@ -405,7 +405,7 @@ function InquiryRow({ inquiry, onUpdated }: { inquiry: Inquiry; onUpdated: () =>
   return (
     <div className={cn(
       'bg-card border border-border rounded-xl overflow-hidden transition-all',
-      inquiry.isStale && 'border-amber-300'
+      inquiry.isStale && 'border-amber-300 dark:border-amber-700'
     )}>
       {/* Summary row */}
       <button
@@ -425,7 +425,7 @@ function InquiryRow({ inquiry, onUpdated }: { inquiry: Inquiry; onUpdated: () =>
           <div className="flex items-center gap-2 flex-wrap">
             <span className="text-sm font-semibold text-foreground">{inquiry.clientName}</span>
             {inquiry.isStale && (
-              <span className="flex items-center gap-1 text-[10px] font-semibold text-amber-700 bg-amber-100 border border-amber-200 rounded-full px-2 py-0.5">
+              <span className="flex items-center gap-1 text-[10px] font-semibold text-amber-700 bg-amber-100 border border-amber-200 dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-800 rounded-full px-2 py-0.5">
                 <AlertTriangle className="w-2.5 h-2.5" />
                 Stale
               </span>
@@ -647,24 +647,24 @@ export default function AgentInquiries() {
               <button
                 type="button"
                 onClick={() => setActiveFilter('INQUIRY')}
-                className="flex items-center gap-1.5 bg-blue-50 border border-blue-200 rounded-lg px-3 py-1.5 hover:bg-blue-100 transition-colors"
+                className="flex items-center gap-1.5 bg-blue-50 border border-blue-200 dark:bg-blue-900/30 dark:border-blue-800 rounded-lg px-3 py-1.5 hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-colors"
               >
-                <AlertCircle className="w-3 h-3 text-blue-600" />
-                <span className="text-xs font-semibold text-blue-700">{stageCounts['INQUIRY']} New</span>
+                <AlertCircle className="w-3 h-3 text-blue-600 dark:text-blue-400" />
+                <span className="text-xs font-semibold text-blue-700 dark:text-blue-300">{stageCounts['INQUIRY']} New</span>
               </button>
             )}
             {(stageCounts['WAITING_RESPONSE'] + stageCounts['SCHEDULED'] + stageCounts['VIEWED']) > 0 && (
-              <div className="flex items-center gap-1.5 bg-violet-50 border border-violet-200 rounded-lg px-3 py-1.5">
+              <div className="flex items-center gap-1.5 bg-violet-50 border border-violet-200 dark:bg-violet-900/30 dark:border-violet-800 rounded-lg px-3 py-1.5">
                 <span className="w-2 h-2 rounded-full bg-violet-500" />
-                <span className="text-xs font-semibold text-violet-700">
+                <span className="text-xs font-semibold text-violet-700 dark:text-violet-300">
                   {stageCounts['WAITING_RESPONSE'] + stageCounts['SCHEDULED'] + stageCounts['VIEWED']} In Progress
                 </span>
               </div>
             )}
             {(stageCounts['RENTED'] + stageCounts['PURCHASED']) > 0 && (
-              <div className="flex items-center gap-1.5 bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-1.5">
-                <CheckCircle2 className="w-3 h-3 text-emerald-600" />
-                <span className="text-xs font-semibold text-emerald-700">
+              <div className="flex items-center gap-1.5 bg-emerald-50 border border-emerald-200 dark:bg-emerald-900/30 dark:border-emerald-800 rounded-lg px-3 py-1.5">
+                <CheckCircle2 className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
+                <span className="text-xs font-semibold text-emerald-700 dark:text-emerald-300">
                   {stageCounts['RENTED'] + stageCounts['PURCHASED']} Closed Won
                 </span>
               </div>
@@ -673,10 +673,10 @@ export default function AgentInquiries() {
               <button
                 type="button"
                 onClick={() => setActiveFilter('STALE')}
-                className="flex items-center gap-1.5 bg-amber-50 border border-amber-200 rounded-lg px-3 py-1.5 hover:bg-amber-100 transition-colors"
+                className="flex items-center gap-1.5 bg-amber-50 border border-amber-200 dark:bg-amber-950/30 dark:border-amber-800 rounded-lg px-3 py-1.5 hover:bg-amber-100 dark:hover:bg-amber-900/50 transition-colors"
               >
-                <AlertTriangle className="w-3 h-3 text-amber-600" />
-                <span className="text-xs font-semibold text-amber-700">{staleCount} Stale</span>
+                <AlertTriangle className="w-3 h-3 text-amber-600 dark:text-amber-400" />
+                <span className="text-xs font-semibold text-amber-700 dark:text-amber-300">{staleCount} Stale</span>
               </button>
             )}
           </div>
@@ -695,7 +695,7 @@ export default function AgentInquiries() {
                   className={cn(
                     'px-3 py-1.5 rounded-md text-xs font-medium transition-all flex items-center gap-1.5 whitespace-nowrap flex-shrink-0',
                     activeFilter === tab.value
-                      ? 'bg-white text-foreground shadow-sm'
+                      ? 'bg-card text-foreground shadow-sm'
                       : 'text-muted-foreground hover:text-foreground'
                   )}
                 >

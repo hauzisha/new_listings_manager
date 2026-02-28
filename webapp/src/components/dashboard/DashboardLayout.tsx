@@ -22,9 +22,10 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { NotificationBell } from './NotificationBell';
+import { ThemeToggle } from '@/components/ThemeToggle';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
-import { useSession } from '@/lib/auth-client';
-import { authClient } from '@/lib/auth-client';
+import { authClient, setSessionToken } from '@/lib/auth-client';
+import { getSessionToken } from '@/lib/session';
 import { cn } from '@/lib/utils';
 
 interface NavItem {
@@ -61,9 +62,9 @@ const PROMOTER_NAV: NavItem[] = [
 ];
 
 function getRoleBadgeClass(role: string): string {
-  if (role === 'ADMIN') return 'bg-indigo-100 text-indigo-700 border-indigo-200';
-  if (role === 'AGENT') return 'bg-emerald-100 text-emerald-700 border-emerald-200';
-  return 'bg-amber-100 text-amber-700 border-amber-200';
+  if (role === 'ADMIN') return 'bg-indigo-100 text-indigo-700 border-indigo-200 dark:bg-indigo-900/30 dark:text-indigo-300 dark:border-indigo-800';
+  if (role === 'AGENT') return 'bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-300 dark:border-emerald-800';
+  return 'bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-800';
 }
 
 function getRoleLabel(role: string): string {
@@ -121,11 +122,14 @@ interface DashboardLayoutProps {
 export function DashboardLayout({ children, title }: DashboardLayoutProps) {
   const location = useLocation();
   const navigate = useNavigate();
-  const { data: session, isPending: sessionLoading } = useSession();
-  const { userStatus, isLoading: userStatusLoading } = useCurrentUser();
+  const token = getSessionToken();
+  const { userStatus, isLoading } = useCurrentUser();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  const isLoading = sessionLoading || userStatusLoading;
+  // No token = not logged in
+  if (!token) {
+    return <Navigate to="/login" replace />;
+  }
 
   if (isLoading) {
     return (
@@ -138,20 +142,18 @@ export function DashboardLayout({ children, title }: DashboardLayoutProps) {
     );
   }
 
-  if (!session?.user) {
+  if (!userStatus || !userStatus.isApproved) {
     return <Navigate to="/login" replace />;
   }
 
-  if (userStatus && !userStatus.isApproved) {
-    return <Navigate to="/login" replace />;
-  }
-
-  const role = userStatus?.role ?? 'AGENT';
+  const role = userStatus.role;
+  const user = { name: userStatus.name, email: userStatus.email };
   const navItems =
     role === 'ADMIN' ? ADMIN_NAV : role === 'PROMOTER' ? PROMOTER_NAV : AGENT_NAV;
   const mobileNavItems = navItems.slice(0, 5);
 
   const handleSignOut = async () => {
+    setSessionToken(null);
     await authClient.signOut();
     navigate('/login');
   };
@@ -163,8 +165,6 @@ export function DashboardLayout({ children, title }: DashboardLayoutProps) {
     return location.pathname.startsWith(href);
   };
 
-  const user = session.user;
-
   const sidebarContent = (
     <div className="flex flex-col h-full">
       {/* Logo */}
@@ -174,7 +174,7 @@ export function DashboardLayout({ children, title }: DashboardLayoutProps) {
             <Building2 className="w-4 h-4 text-white" />
           </div>
           <div>
-            <span className="font-display text-white text-xl font-bold italic tracking-tight">
+            <span className="font-display text-[hsl(var(--sidebar-foreground))] text-xl font-bold italic tracking-tight">
               Hauzisha
             </span>
             <p className="text-[10px] text-[hsl(var(--sidebar-foreground)/0.4)] mt-0.5 font-sans tracking-widest uppercase leading-none">Property Platform</p>
@@ -222,8 +222,7 @@ export function DashboardLayout({ children, title }: DashboardLayoutProps) {
     <div className="flex h-screen bg-background overflow-hidden">
       {/* Desktop Sidebar */}
       <aside
-        className="hidden md:flex flex-col w-60 border-r border-[hsl(var(--sidebar-border))] flex-shrink-0"
-        style={{ background: 'linear-gradient(175deg, hsl(222 44% 11%) 0%, hsl(224 50% 8%) 100%)' }}
+        className="hidden md:flex flex-col w-60 border-r border-[hsl(var(--sidebar-border))] flex-shrink-0 bg-[hsl(var(--sidebar-background))]"
       >
         {sidebarContent}
       </aside>
@@ -236,11 +235,10 @@ export function DashboardLayout({ children, title }: DashboardLayoutProps) {
             onClick={() => setMobileMenuOpen(false)}
           />
           <aside
-            className="relative z-10 w-64 border-r border-[hsl(var(--sidebar-border))] flex flex-col h-full shadow-2xl"
-            style={{ background: 'linear-gradient(175deg, hsl(222 44% 11%) 0%, hsl(224 50% 8%) 100%)' }}
+            className="relative z-10 w-64 border-r border-[hsl(var(--sidebar-border))] flex flex-col h-full shadow-2xl bg-[hsl(var(--sidebar-background))]"
           >
             <div className="flex items-center justify-between px-5 py-4 border-b border-[hsl(var(--sidebar-border))]">
-              <span className="font-display text-white text-xl font-bold italic">Hauzisha</span>
+              <span className="font-display text-[hsl(var(--sidebar-foreground))] text-xl font-bold italic">Hauzisha</span>
               <Button
                 variant="ghost"
                 size="icon"
@@ -302,6 +300,7 @@ export function DashboardLayout({ children, title }: DashboardLayoutProps) {
           </div>
 
           <div className="flex items-center gap-1.5">
+            <ThemeToggle />
             <NotificationBell />
 
             {/* User dropdown */}
@@ -355,8 +354,7 @@ export function DashboardLayout({ children, title }: DashboardLayoutProps) {
 
         {/* Mobile bottom tab bar */}
         <nav
-          className="md:hidden flex items-stretch border-t border-border shadow-[0_-1px_8px_rgba(0,0,0,0.06)] flex-shrink-0"
-          style={{ background: 'linear-gradient(to top, hsl(0 0% 100%), hsl(218 26% 98%))' }}
+          className="md:hidden flex items-stretch border-t border-border shadow-[0_-1px_8px_rgba(0,0,0,0.06)] flex-shrink-0 bg-card"
         >
           {mobileNavItems.map((item) => {
             const active = isNavActive(item.href);

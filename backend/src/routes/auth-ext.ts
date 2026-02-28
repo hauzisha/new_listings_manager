@@ -106,6 +106,16 @@ authExtRouter.post("/register", async (c) => {
   return c.json({ data: { message: "Account created. Pending admin approval." } }, 201);
 });
 
+// GET /api/auth/get-session — intercept before Better Auth so Bearer token works on refresh
+authExtRouter.get("/get-session", async (c) => {
+  const user = c.get("user");
+  const session = c.get("session");
+  if (!user || !session) {
+    return c.json(null);
+  }
+  return c.json({ user, session });
+});
+
 // GET /api/auth/user-status — returns role and isApproved for the authenticated user
 authExtRouter.get("/user-status", async (c) => {
   const sessionUser = c.get("user");
@@ -115,14 +125,14 @@ authExtRouter.get("/user-status", async (c) => {
 
   const user = await prisma.user.findUnique({
     where: { id: sessionUser.id },
-    select: { role: true, isApproved: true },
+    select: { name: true, email: true, role: true, isApproved: true },
   });
 
   if (!user) {
     return c.json({ error: { message: "User not found", code: "NOT_FOUND" } }, 404);
   }
 
-  return c.json({ data: { role: user.role, isApproved: user.isApproved } });
+  return c.json({ data: { name: user.name, email: user.email, role: user.role, isApproved: user.isApproved } });
 });
 
 export { authExtRouter };

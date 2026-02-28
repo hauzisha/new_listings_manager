@@ -81,16 +81,16 @@ interface TrackingLink {
 // ─── Platform config ──────────────────────────────────────────────────────────
 
 const PLATFORM_CONFIG: Record<Platform, { label: string; className: string }> = {
-  WHATSAPP:  { label: 'WhatsApp',   className: 'bg-green-100 text-green-700 border-green-200'     },
-  FACEBOOK:  { label: 'Facebook',   className: 'bg-blue-100 text-blue-700 border-blue-200'        },
-  INSTAGRAM: { label: 'Instagram',  className: 'bg-pink-100 text-pink-700 border-pink-200'        },
-  TWITTER_X: { label: 'X / Twitter',className: 'bg-gray-100 text-gray-800 border-gray-300'       },
-  TIKTOK:    { label: 'TikTok',     className: 'bg-gray-100 text-gray-800 border-gray-300'       },
-  LINKEDIN:  { label: 'LinkedIn',   className: 'bg-blue-100 text-blue-800 border-blue-300'       },
-  EMAIL:     { label: 'Email',      className: 'bg-gray-100 text-gray-600 border-gray-200'       },
-  SMS:       { label: 'SMS',        className: 'bg-gray-100 text-gray-600 border-gray-200'       },
-  WEBSITE:   { label: 'Website',    className: 'bg-blue-50 text-blue-600 border-blue-200'        },
-  OTHER:     { label: 'Other',      className: 'bg-gray-100 text-gray-500 border-gray-200'       },
+  WHATSAPP:  { label: 'WhatsApp',   className: 'bg-green-100 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-300 dark:border-green-800'     },
+  FACEBOOK:  { label: 'Facebook',   className: 'bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-800'        },
+  INSTAGRAM: { label: 'Instagram',  className: 'bg-pink-100 text-pink-700 border-pink-200 dark:bg-pink-900/30 dark:text-pink-300 dark:border-pink-800'        },
+  TWITTER_X: { label: 'X / Twitter',className: 'bg-gray-100 text-gray-800 border-gray-300 dark:bg-gray-800/50 dark:text-gray-300 dark:border-gray-700'       },
+  TIKTOK:    { label: 'TikTok',     className: 'bg-gray-100 text-gray-800 border-gray-300 dark:bg-gray-800/50 dark:text-gray-300 dark:border-gray-700'       },
+  LINKEDIN:  { label: 'LinkedIn',   className: 'bg-blue-100 text-blue-800 border-blue-300 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-800'       },
+  EMAIL:     { label: 'Email',      className: 'bg-gray-100 text-gray-600 border-gray-200 dark:bg-gray-800/50 dark:text-gray-300 dark:border-gray-700'       },
+  SMS:       { label: 'SMS',        className: 'bg-gray-100 text-gray-600 border-gray-200 dark:bg-gray-800/50 dark:text-gray-300 dark:border-gray-700'       },
+  WEBSITE:   { label: 'Website',    className: 'bg-blue-50 text-blue-600 border-blue-200 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-800'        },
+  OTHER:     { label: 'Other',      className: 'bg-gray-100 text-gray-500 border-gray-200 dark:bg-gray-800/50 dark:text-gray-300 dark:border-gray-700'       },
 };
 
 const PLATFORMS: Platform[] = [
@@ -144,7 +144,7 @@ function CopyButton({ url, size = 'md' }: { url: string; size?: 'sm' | 'md' }) {
       variant="outline"
       size="sm"
       onClick={handleCopy}
-      className={cn('gap-1.5 h-8 px-3 text-xs', copied && 'border-emerald-300 text-emerald-700 bg-emerald-50')}
+      className={cn('gap-1.5 h-8 px-3 text-xs', copied && 'border-emerald-300 text-emerald-700 bg-emerald-50 dark:border-emerald-800 dark:text-emerald-300 dark:bg-emerald-900/30')}
     >
       {copied ? <CheckCheck className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
       {copied ? 'Copied!' : 'Copy'}
@@ -263,7 +263,7 @@ export function CreateLinkDialog({ open, onClose, onCreated, prefillListingId }:
               <Button
                 variant="outline"
                 size="sm"
-                className="gap-1.5 h-8 px-3 text-xs bg-green-50 border-green-300 text-green-700 hover:bg-green-100 flex-1"
+                className="gap-1.5 h-8 px-3 text-xs bg-green-50 border-green-300 text-green-700 hover:bg-green-100 dark:bg-green-900/30 dark:border-green-800 dark:text-green-300 dark:hover:bg-green-900/50 flex-1"
                 onClick={handleWhatsApp}
               >
                 <ArrowUpRight className="w-3.5 h-3.5" />

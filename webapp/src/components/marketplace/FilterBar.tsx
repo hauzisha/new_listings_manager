@@ -105,7 +105,7 @@ export default function FilterBar() {
   }
 
   return (
-    <div className="sticky top-16 z-40 bg-white/98 backdrop-blur-sm border-b border-border/60 shadow-sm">
+    <div className="sticky top-16 z-40 bg-card/98 backdrop-blur-sm border-b border-border/60 shadow-sm">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
         <div className="flex flex-wrap items-center gap-2.5">
           {/* Filter icon label (desktop only) */}

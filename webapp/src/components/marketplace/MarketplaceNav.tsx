@@ -1,14 +1,14 @@
 import { Link } from "react-router-dom";
 import { Building2, ChevronRight, LayoutDashboard } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useSession } from "@/lib/auth-client";
+import { ThemeToggle } from "@/components/ThemeToggle";
+import { getSessionToken } from "@/lib/session";
 
 export default function MarketplaceNav() {
-  const { data: session } = useSession();
-  const user = session?.user;
+  const isLoggedIn = !!getSessionToken();
 
   return (
-    <header className="sticky top-0 z-50 w-full bg-white/95 backdrop-blur-sm border-b border-border/60 shadow-sm">
+    <header className="sticky top-0 z-50 w-full bg-card/95 backdrop-blur-sm border-b border-border/60 shadow-sm">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           {/* Brand */}
@@ -26,8 +26,9 @@ export default function MarketplaceNav() {
           </Link>
 
           {/* Right side actions */}
-          <nav className="flex items-center gap-2">
-            {user ? (
+          <nav className="flex items-center gap-1.5">
+            <ThemeToggle />
+            {isLoggedIn ? (
               <Button asChild size="sm" className="gap-1.5 font-medium">
                 <Link to="/dashboard/agent">
                   <LayoutDashboard className="w-4 h-4" />

@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { AuthLayout } from "@/components/auth/AuthLayout";
-import { authClient } from "@/lib/auth-client";
+import { authClient, setSessionToken } from "@/lib/auth-client";
 import { api } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
@@ -42,6 +42,9 @@ export default function Login() {
     setErrorMessage(null);
     setIsLoading(true);
     try {
+      // Clear any stale token before signing in
+      setSessionToken(null);
+
       const result = await authClient.signIn.email({
         email: values.email,
         password: values.password,
@@ -53,8 +56,10 @@ export default function Login() {
         return;
       }
 
-      // Small delay to let cookie settle
-      await new Promise((r) => setTimeout(r, 300));
+      // Capture the session token from the sign-in response
+      if (result.data?.token) {
+        setSessionToken(result.data.token);
+      }
 
       // Check user status
       const status = await api.get<UserStatusResponse>("/api/auth/user-status");
@@ -175,27 +180,24 @@ export default function Login() {
         </Button>
       </form>
 
-      {/* Footer links */}
-      <div className="mt-8 pt-6 border-t border-border space-y-3">
-        <p className="text-muted-foreground text-xs text-center font-sans uppercase tracking-wider">
-          New to Hauzisha?
-        </p>
-        <div className="grid grid-cols-2 gap-3">
-          <Link
-            to="/signup/agent"
-            className="flex items-center justify-center gap-2 rounded-lg border border-border bg-card hover:bg-muted hover:border-primary/30 transition-all px-4 py-3 text-sm font-medium text-foreground group"
-          >
-            <span>Sign up as Agent</span>
-            <ArrowRight className="w-3.5 h-3.5 text-muted-foreground group-hover:text-primary transition-colors" />
-          </Link>
-          <Link
-            to="/signup/promoter"
-            className="flex items-center justify-center gap-2 rounded-lg border border-border bg-card hover:bg-muted hover:border-primary/30 transition-all px-4 py-3 text-sm font-medium text-foreground group"
-          >
-            <span>Sign up as Promoter</span>
-            <ArrowRight className="w-3.5 h-3.5 text-muted-foreground group-hover:text-primary transition-colors" />
-          </Link>
+      {/* Divider */}
+      <div className="relative my-8">
+        <div className="absolute inset-0 flex items-center">
+          <div className="w-full border-t border-border" />
         </div>
+        <div className="relative flex justify-center text-xs">
+          <span className="bg-background px-3 text-muted-foreground">New to Hauzisha?</span>
+        </div>
+      </div>
+
+      {/* Sign up links */}
+      <div className="grid grid-cols-2 gap-3">
+        <Button asChild variant="outline" className="h-11">
+          <Link to="/signup/agent">Sign up as Agent</Link>
+        </Button>
+        <Button asChild variant="outline" className="h-11">
+          <Link to="/signup/promoter">Sign up as Promoter</Link>
+        </Button>
       </div>
     </AuthLayout>
   );

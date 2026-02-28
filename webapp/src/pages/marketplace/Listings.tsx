@@ -23,7 +23,7 @@ interface PublicListingsResponse {
 
 function SkeletonCard() {
   return (
-    <div className="bg-white rounded-xl border border-border overflow-hidden animate-pulse">
+    <div className="bg-card rounded-xl border border-border overflow-hidden animate-pulse">
       <div className="w-full h-48 bg-muted" />
       <div className="p-4 space-y-3">
         <div className="h-4 bg-muted rounded w-3/4" />
@@ -264,7 +264,7 @@ export default function Listings() {
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-border bg-white mt-8">
+      <footer className="border-t border-border bg-card mt-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex flex-col sm:flex-row items-center justify-between gap-3 text-sm text-muted-foreground">
           <div className="flex items-center gap-2">
             <Building2 className="w-4 h-4 text-primary" />

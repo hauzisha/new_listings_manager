@@ -47,8 +47,32 @@ app.use(
 app.use("*", logger());
 
 // Auth session middleware - populates user/session for all routes
+// Tries cookie-based session first, then falls back to Bearer token lookup
 app.use("*", async (c, next) => {
-  const session = await auth.api.getSession({ headers: c.req.raw.headers });
+  let session = await auth.api.getSession({ headers: c.req.raw.headers });
+
+  // Fallback: check Authorization Bearer token in database
+  if (!session) {
+    const authHeader = c.req.header("authorization");
+    if (authHeader?.startsWith("Bearer ")) {
+      const token = authHeader.slice(7);
+      try {
+        const dbSession = await prisma.session.findFirst({
+          where: { token, expiresAt: { gt: new Date() } },
+          include: { user: true },
+        });
+        if (dbSession) {
+          session = {
+            user: dbSession.user as typeof auth.$Infer.Session.user,
+            session: dbSession as unknown as typeof auth.$Infer.Session.session,
+          };
+        }
+      } catch {
+        // Ignore lookup errors
+      }
+    }
+  }
+
   c.set("user", session?.user ?? null);
   c.set("session", session?.session ?? null);
   await next();
