@@ -46,38 +46,9 @@ app.use(
 // Logging
 app.use("*", logger());
 
-// Auth session middleware - populates user/session for all routes
-// Tries cookie-based session first, then falls back to Bearer token lookup
+// Auth session middleware — cookie-based, the standard way
 app.use("*", async (c, next) => {
-  let session: Awaited<ReturnType<typeof auth.api.getSession>> | null = null;
-  try {
-    session = await auth.api.getSession({ headers: c.req.raw.headers });
-  } catch {
-    // Cookie-based session lookup may fail on Vercel; fall through to Bearer token
-  }
-
-  // Fallback: check Authorization Bearer token in database
-  if (!session) {
-    const authHeader = c.req.header("authorization");
-    if (authHeader?.startsWith("Bearer ")) {
-      const token = authHeader.slice(7);
-      try {
-        const dbSession = await prisma.session.findFirst({
-          where: { token, expiresAt: { gt: new Date() } },
-          include: { user: true },
-        });
-        if (dbSession) {
-          session = {
-            user: dbSession.user as typeof auth.$Infer.Session.user,
-            session: dbSession as unknown as typeof auth.$Infer.Session.session,
-          };
-        }
-      } catch {
-        // Ignore lookup errors
-      }
-    }
-  }
-
+  const session = await auth.api.getSession({ headers: c.req.raw.headers });
   c.set("user", session?.user ?? null);
   c.set("session", session?.session ?? null);
   await next();

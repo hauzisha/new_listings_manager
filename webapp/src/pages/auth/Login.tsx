@@ -6,7 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { AuthLayout } from "@/components/auth/AuthLayout";
-import { authClient, setSessionToken } from "@/lib/auth-client";
+import { authClient } from "@/lib/auth-client";
+import { setLoggedIn } from "@/lib/session";
 import { api } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
@@ -42,9 +43,6 @@ export default function Login() {
     setErrorMessage(null);
     setIsLoading(true);
     try {
-      // Clear any stale token before signing in
-      setSessionToken(null);
-
       const result = await authClient.signIn.email({
         email: values.email,
         password: values.password,
@@ -56,15 +54,14 @@ export default function Login() {
         return;
       }
 
-      // Capture the session token from the sign-in response
-      if (result.data?.token) {
-        setSessionToken(result.data.token);
-      }
+      // Cookie is set by Better Auth. Flag localStorage so UI knows we're logged in.
+      setLoggedIn(true);
 
-      // Check user status
+      // Check user status (cookie sent automatically)
       const status = await api.get<UserStatusResponse>("/api/auth/user-status");
 
       if (!status.isApproved) {
+        setLoggedIn(false);
         await authClient.signOut();
         setErrorMessage("Your account is pending admin approval.");
         setIsLoading(false);

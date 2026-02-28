@@ -2,10 +2,10 @@ import { Link } from "react-router-dom";
 import { Building2, ChevronRight, LayoutDashboard } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/ThemeToggle";
-import { getSessionToken } from "@/lib/session";
+import { isLoggedIn as checkLoggedIn } from "@/lib/session";
 
 export default function MarketplaceNav() {
-  const isLoggedIn = !!getSessionToken();
+  const loggedIn = checkLoggedIn();
 
   return (
     <header className="sticky top-0 z-50 w-full bg-card/95 backdrop-blur-sm border-b border-border/60 shadow-sm">
@@ -28,7 +28,7 @@ export default function MarketplaceNav() {
           {/* Right side actions */}
           <nav className="flex items-center gap-1.5">
             <ThemeToggle />
-            {isLoggedIn ? (
+            {loggedIn ? (
               <Button asChild size="sm" className="gap-1.5 font-medium">
                 <Link to="/dashboard/agent">
                   <LayoutDashboard className="w-4 h-4" />

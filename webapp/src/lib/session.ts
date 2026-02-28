@@ -1,30 +1,21 @@
-// Centralized session token management
-// Better Auth's HttpOnly cookies don't work through dev proxy,
-// so we store the token and pass it via Authorization header.
+// Simple logged-in flag — NOT the actual token.
+// Cookies handle real auth. This just gates UI checks
+// so we don't make unnecessary API calls for anonymous visitors.
 
-const STORAGE_KEY = "session_token";
+const KEY = "logged_in";
 
-let token: string | null = null;
-
-// Restore from localStorage on module load
-try {
-  token = localStorage.getItem(STORAGE_KEY);
-} catch {
-  // SSR or restricted context
-}
-
-export function getSessionToken(): string | null {
-  return token;
-}
-
-export function setSessionToken(t: string | null) {
-  token = t;
+export function isLoggedIn(): boolean {
   try {
-    if (t) {
-      localStorage.setItem(STORAGE_KEY, t);
-    } else {
-      localStorage.removeItem(STORAGE_KEY);
-    }
+    return localStorage.getItem(KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
+export function setLoggedIn(v: boolean) {
+  try {
+    if (v) localStorage.setItem(KEY, "1");
+    else localStorage.removeItem(KEY);
   } catch {
     // SSR or restricted context
   }

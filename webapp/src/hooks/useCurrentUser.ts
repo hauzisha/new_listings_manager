@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { api } from '@/lib/api';
-import { getSessionToken } from '@/lib/session';
+import { isLoggedIn, setLoggedIn } from '@/lib/session';
 
 interface UserStatus {
   name: string;
@@ -10,21 +10,23 @@ interface UserStatus {
 }
 
 export function useCurrentUser() {
-  const token = getSessionToken();
+  const flaggedIn = isLoggedIn();
 
   const { data, isLoading, isError } = useQuery({
     queryKey: ['user-status'],
     queryFn: () => api.get<UserStatus>('/api/auth/user-status'),
     staleTime: 5 * 60 * 1000,
-    retry: 2,
-    retryDelay: 500,
-    enabled: !!token,
+    retry: 1,
+    enabled: flaggedIn,
   });
 
-  // If we have a token but the query errored, treat as "no session"
-  // (token is stale/invalid). If still loading, keep showing spinner.
+  // Cookie session expired — clear the flag so we stop trying
+  if (isError && flaggedIn) {
+    setLoggedIn(false);
+  }
+
   return {
     userStatus: isError ? null : data,
-    isLoading: !!token && isLoading,
+    isLoading: flaggedIn && isLoading,
   };
 }

@@ -24,8 +24,8 @@ import { Separator } from '@/components/ui/separator';
 import { NotificationBell } from './NotificationBell';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
-import { authClient, setSessionToken } from '@/lib/auth-client';
-import { getSessionToken } from '@/lib/session';
+import { authClient } from '@/lib/auth-client';
+import { setLoggedIn } from '@/lib/session';
 import { cn } from '@/lib/utils';
 
 interface NavItem {
@@ -122,14 +122,8 @@ interface DashboardLayoutProps {
 export function DashboardLayout({ children, title }: DashboardLayoutProps) {
   const location = useLocation();
   const navigate = useNavigate();
-  const token = getSessionToken();
   const { userStatus, isLoading } = useCurrentUser();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-
-  // No token = not logged in
-  if (!token) {
-    return <Navigate to="/login" replace />;
-  }
 
   if (isLoading) {
     return (
@@ -153,7 +147,7 @@ export function DashboardLayout({ children, title }: DashboardLayoutProps) {
   const mobileNavItems = navItems.slice(0, 5);
 
   const handleSignOut = async () => {
-    setSessionToken(null);
+    setLoggedIn(false);
     await authClient.signOut();
     navigate('/login');
   };
