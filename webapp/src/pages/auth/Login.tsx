@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { AuthLayout } from "@/components/auth/AuthLayout";
 import { authClient } from "@/lib/auth-client";
-import { api, setSessionToken } from "@/lib/api";
+import { api } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
 interface LoginFormValues {
@@ -53,20 +53,14 @@ export default function Login() {
         return;
       }
 
-      // Store session token for API calls
-      const token = result.data?.token;
-      if (token) {
-        setSessionToken(token);
-        localStorage.setItem("session_token", token);
-      }
+      // Small delay to let cookie settle
+      await new Promise((r) => setTimeout(r, 300));
 
       // Check user status
       const status = await api.get<UserStatusResponse>("/api/auth/user-status");
 
       if (!status.isApproved) {
         await authClient.signOut();
-        setSessionToken(null);
-        localStorage.removeItem("session_token");
         setErrorMessage("Your account is pending admin approval.");
         setIsLoading(false);
         return;

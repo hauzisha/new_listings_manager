@@ -108,28 +108,7 @@ authExtRouter.post("/register", async (c) => {
 
 // GET /api/auth/user-status — returns role and isApproved for the authenticated user
 authExtRouter.get("/user-status", async (c) => {
-  let sessionUser = c.get("user");
-
-  // Fallback: if no session from cookie, try token query param (handles cookie race after sign-in)
-  if (!sessionUser) {
-    const token = c.req.query("token");
-    if (token) {
-      const dbSession = await prisma.session.findFirst({
-        where: { token },
-        select: { userId: true },
-      });
-      if (dbSession) {
-        const u = await prisma.user.findUnique({
-          where: { id: dbSession.userId },
-          select: { role: true, isApproved: true },
-        });
-        if (u) {
-          return c.json({ data: { role: u.role, isApproved: u.isApproved } });
-        }
-      }
-    }
-  }
-
+  const sessionUser = c.get("user");
   if (!sessionUser) {
     return c.json({ error: { message: "Unauthorized", code: "UNAUTHORIZED" } }, 401);
   }

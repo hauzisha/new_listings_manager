@@ -12,34 +12,15 @@ interface ApiResponse<T> {
   data: T;
 }
 
-// Session token storage — set after sign-in, cleared on sign-out
-// Restore from localStorage on page load (survives refresh)
-let sessionToken: string | null = localStorage.getItem("session_token");
-export function setSessionToken(token: string | null) {
-  sessionToken = token;
-  if (token) {
-    localStorage.setItem("session_token", token);
-  } else {
-    localStorage.removeItem("session_token");
-  }
-}
-
 async function request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
   const url = `${API_BASE_URL}${endpoint}`;
 
-  const headers: Record<string, string> = {
-    "Content-Type": "application/json",
-    ...(options.headers as Record<string, string>),
-  };
-
-  // Attach session token as Bearer if available
-  if (sessionToken) {
-    headers["Authorization"] = `Bearer ${sessionToken}`;
-  }
-
   const config: RequestInit = {
     ...options,
-    headers,
+    headers: {
+      "Content-Type": "application/json",
+      ...options.headers,
+    },
     credentials: "include",
   };
 
@@ -48,7 +29,6 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
   if (!response.ok) {
     const json = await response.json().catch(() => null);
     throw new ApiError(
-      // Try app-route format first, fallback to generic message (Better Auth uses this)
       json?.error?.message || json?.message || `Request failed with status ${response.status}`,
       response.status,
       json?.error || json
@@ -114,17 +94,6 @@ export const api = {
 
   // Escape hatch for non-JSON endpoints
   raw: rawRequest,
-};
-
-// Sample endpoint types (extend as needed)
-export interface SampleResponse {
-  message: string;
-  timestamp: string;
-}
-
-// Sample API functions
-export const sampleApi = {
-  getSample: () => api.get<SampleResponse>("/api/sample"),
 };
 
 export { ApiError };

@@ -25,7 +25,6 @@ import { NotificationBell } from './NotificationBell';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { useSession } from '@/lib/auth-client';
 import { authClient } from '@/lib/auth-client';
-import { setSessionToken } from '@/lib/api';
 import { cn } from '@/lib/utils';
 
 interface NavItem {
@@ -154,7 +153,6 @@ export function DashboardLayout({ children, title }: DashboardLayoutProps) {
 
   const handleSignOut = async () => {
     await authClient.signOut();
-    setSessionToken(null);
     navigate('/login');
   };
 
